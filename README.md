@@ -2,7 +2,7 @@
 
 Photograph a page of your handwritten language notebook and get Anki flashcards from it, sketches included.
 
-![example page](examples/mandarin_components.png)
+![screenshot](docs/image.png)
 
 1. **Box detection** (OpenCV) finds the hand-drawn boxes around your sketches and crops them.
 2. **Claude** reads the page, with **PaddleOCR** as a second opinion for diacritics, tones and non-Latin scripts. It matches sketches to words, works out language and topic, and follows instructions written on the page (e.g. "2 example sentences per word").
