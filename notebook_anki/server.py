@@ -60,9 +60,7 @@ def seed_demos() -> None:
         shutil.copy(image, d / name)
         meta = {"id": d.name, "name": image.stem.replace("_", " ").capitalize(), "file": name,
                 "status": "ready", "created": 0, "demo": True}
-        if (d / "proposal.json").exists():
-            meta["name"] = PageProposal.model_validate_json((d / "proposal.json").read_text()).target_lang
-        else:
+        if not (d / "proposal.json").exists():
             meta["status"] = "queued"  # without bundled results the demo is processed like an upload
         (d / "meta.json").write_text(json.dumps(meta, indent=2))
 
@@ -227,10 +225,18 @@ def anki_install():
     return anki.status()
 
 
+def page_summary(d: Path) -> dict:
+    """meta.json plus what the sidebar shows. The title is the proposal's topic, the same
+    name the Anki deck gets; `name` (the upload's file name) only stands in until there is one."""
+    meta = json.loads((d / "meta.json").read_text())
+    proposal = json.loads((d / "proposal.json").read_text()) if (d / "proposal.json").exists() else {}
+    return {**meta, "title": proposal.get("topic") or meta["name"], "lang": proposal.get("target_lang")}
+
+
 @app.get("/pages")
 def list_pages():
-    metas = [json.loads(p.read_text()) for p in PAGES.glob("*/meta.json")]
-    return sorted(metas, key=lambda m: m["created"], reverse=True)
+    pages = [page_summary(p.parent) for p in PAGES.glob("*/meta.json")]
+    return sorted(pages, key=lambda m: m["created"], reverse=True)
 
 
 @app.post("/pages")

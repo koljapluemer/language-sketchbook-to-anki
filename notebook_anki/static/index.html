@@ -35,6 +35,7 @@
   .page-item { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
   .page-item:hover, .page-item.active { background: var(--chip); }
   .page-item .info { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+  .page-item .lang { font-size: 12px; color: var(--muted); }
   .page-item .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .thumb { width: 44px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: #fff; flex: none; }
   .section { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 8px 4px; }
@@ -112,7 +113,8 @@
       <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
         <img class="thumb" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
         <div class="info">
-          <span class="name" x-text="p.name" :title="p.name"></span>
+          <span class="name" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
+          <span class="lang" x-show="pageLang(p)" x-text="pageLang(p)"></span>
           <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
         </div>
       </div>
@@ -123,7 +125,8 @@
         <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
           <img class="thumb" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
           <div class="info">
-            <span class="name" x-text="p.name" :title="p.name"></span>
+            <span class="name" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
+            <span class="lang" x-show="pageLang(p)" x-text="pageLang(p)"></span>
             <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
           </div>
         </div>
@@ -149,7 +152,7 @@
         <!-- processing -->
         <template x-if="['queued', 'extracting', 'thinking', 'error'].includes(detail.meta.status)">
           <div>
-            <h2 x-text="detail.meta.name"></h2>
+            <h2 x-text="pageTitle(detail.meta)"></h2>
             <p x-show="detail.meta.error" style="color: var(--err)" x-text="detail.meta.error"></p>
             <div class="log" x-ref="log"><template x-for="e in log"><div x-text="formatEvent(e)"></div></template></div>
             <div class="toolbar" x-show="detail.meta.status === 'error'"><button @click="rerun()">Retry</button></div>
@@ -161,10 +164,10 @@
           <div>
             <p class="demo-note" x-show="detail.meta.demo">Demo page: an example notebook page, already processed. Edit and explore freely; “Add to Anki” creates real cards.</p>
             <div class="meta-grid">
-              <div><label class="f">Target language</label><input x-model="detail.proposal.target_lang"></div>
-              <div><label class="f">Native language</label><input x-model="detail.proposal.native_lang"></div>
-              <div><label class="f">Topic <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></label>
-                <input x-model="detail.proposal.topic"></div>
+              <div><label class="f">Target language</label><input x-model="detail.proposal.target_lang" @change="save()"></div>
+              <div><label class="f">Native language</label><input x-model="detail.proposal.native_lang" @change="save()"></div>
+              <div><label class="f">Title: page name and deck <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></label>
+                <input x-model="detail.proposal.topic" @change="save()"></div>
             </div>
             <div class="deck">Deck: <b x-text="deckName()"></b></div>
             <p x-show="detail.anki_error" style="color: var(--err)" x-text="detail.anki_error"></p>
@@ -283,7 +286,11 @@ function app() {
       if (cur && this.detail && cur.status !== this.detail.meta.status) this.select(cur.id, true);
     },
     ownPages() { return this.pages.filter(p => !p.demo); },
-    demoPages() { return this.pages.filter(p => p.demo).sort((a, b) => a.name.localeCompare(b.name)); },
+    demoPages() { return this.pages.filter(p => p.demo).sort((a, b) => this.pageTitle(a).localeCompare(this.pageTitle(b))); },
+    // the open page's proposal is the live copy of what /pages reports, so edits show up in the sidebar while typing
+    liveProposal(p) { return p.id === this.selectedId && this.detail?.proposal ? this.detail.proposal : null; },
+    pageTitle(p) { return (this.liveProposal(p)?.topic ?? p.title ?? '').trim() || p.name; },
+    pageLang(p) { return this.liveProposal(p)?.target_lang ?? p.lang; },
     async upload(files) {
       if (!files.length) return;
       const form = new FormData();
@@ -341,6 +348,14 @@ function app() {
       await this.api(`/pages/${this.selectedId}/rerun`, { method: 'POST' });
       await this.loadPages();
       this.select(this.selectedId);
+    },
+    async save() {
+      try {
+        await this.api(`/pages/${this.selectedId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.detail.proposal),
+        });
+      } catch (e) { return alert(e.message); }
+      await this.loadPages();
     },
     async commit() {
       this.busy = true;
