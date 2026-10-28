@@ -1,0 +1,171 @@
+{
+  "target_lang": "Mandarin Chinese",
+  "native_lang": "English",
+  "topic": "Building Blocks",
+  "topic_source": "page",
+  "boxes": [
+    {
+      "id": "B1",
+      "kind": "title"
+    },
+    {
+      "id": "B2",
+      "kind": "label"
+    },
+    {
+      "id": "B3",
+      "kind": "label"
+    },
+    {
+      "id": "B4",
+      "kind": "noise"
+    },
+    {
+      "id": "B5",
+      "kind": "label"
+    },
+    {
+      "id": "B6",
+      "kind": "label"
+    },
+    {
+      "id": "B7",
+      "kind": "label"
+    },
+    {
+      "id": "B8",
+      "kind": "label"
+    },
+    {
+      "id": "B9",
+      "kind": "label"
+    },
+    {
+      "id": "B10",
+      "kind": "noise"
+    },
+    {
+      "id": "B11",
+      "kind": "noise"
+    },
+    {
+      "id": "B12",
+      "kind": "noise"
+    },
+    {
+      "id": "B13",
+      "kind": "label"
+    },
+    {
+      "id": "B14",
+      "kind": "label"
+    },
+    {
+      "id": "B15",
+      "kind": "noise"
+    },
+    {
+      "id": "B16",
+      "kind": "noise"
+    },
+    {
+      "id": "B17",
+      "kind": "label"
+    },
+    {
+      "id": "B18",
+      "kind": "label"
+    },
+    {
+      "id": "B19",
+      "kind": "label"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "vocab",
+      "key": "人",
+      "front": "人 (rén)",
+      "translation": "person",
+      "notes": "Building-block radical.",
+      "image": null,
+      "production": false,
+      "production_reason": "Radical/component; recognition is enough.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "冫",
+      "front": "冫 (bīng)",
+      "translation": "ice (two-drop water)",
+      "notes": "Ice radical, 'two drops water'.",
+      "image": null,
+      "production": false,
+      "production_reason": "Radical only; recognition is enough.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "刀",
+      "front": "刀 (dāo)",
+      "translation": "knife",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "Radical/component; recognition is enough.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "力",
+      "front": "力 (lì)",
+      "translation": "strength; power",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "Component; recognition is enough.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "又",
+      "front": "又 (yòu)",
+      "translation": "again; right hand",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "Component; recognition is enough.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    }
+  ],
+  "flags": [
+    {
+      "message": "Characters are handwritten and tone marks hard to read; I inferred them from the characters. Please check.",
+      "card": "人",
+      "field": null,
+      "suggestion": null
+    },
+    {
+      "message": "Page reads 'bing' without a tone mark and the radical is a small stroke; I used 冫 (bīng). Confirm.",
+      "card": "冫",
+      "field": null,
+      "suggestion": null
+    },
+    {
+      "message": "Page gloss 'right hand' for 又 is unusual (又 historically depicts a right hand); kept as written.",
+      "card": "又",
+      "field": null,
+      "suggestion": null
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 ## Pipeline
 
-Each uploaded page gets its own folder in `data/pages/<id>/` and goes through a single background queue (`server.py`):
+Each uploaded page gets its own folder in `<data folder>/pages/<id>/` and goes through a single background queue (`server.py`):
 
 | status | what happens | files |
 |---|---|---|
@@ -21,7 +21,7 @@ Pages interrupted by a restart are queued again on startup. Progress is streamed
 Run it on its own for debugging:
 
 ```sh
-uv run python -m notebook_anki.extract examples/t1.png   # writes to out/t1/
+uv run python -m notebook_anki.extract examples/mandarin_components.png   # writes to out/mandarin_components/
 ```
 
 ## The agent
@@ -38,7 +38,7 @@ It may also use web search for grammar facts. Doubts go into `flags`, which the 
 Run the agent without the UI:
 
 ```sh
-uv run python -m notebook_anki.agent examples/t1.png sonnet
+uv run python -m notebook_anki.agent examples/mandarin_components.png sonnet
 ```
 
 ## Anki
@@ -49,7 +49,13 @@ Notes are identified by the `Key` field: `language|kind|normalized key`. A card 
 
 ## Settings
 
-Stored in `data/settings.json`, editable in the UI: Claude model, OCR device, AnkiConnect URL, deck root.
+Stored in `<data folder>/settings.json`, editable in the UI: Claude model, OCR device, AnkiConnect URL, deck root.
+
+The data folder is `data/` in the repo unless set otherwise under *Settings*; that choice is kept in `~/.config/language-sketchbook/config.json`. Changing it moves your pages and settings to the new folder, or, if the new folder already holds app data, switches to it.
+
+## Demo pages
+
+Each image in `examples/` becomes a demo page (`demo-<name>`) the first time the server starts with a data folder. The results in `examples/<name>/` (box crops, `annotated.png`, `boxes.json`, `proposal.json`) are copied along, so demos are ready to review without calling Claude; an example without them is processed like an upload. To refresh a demo's results, run the agent on it (see above) and copy those files from `data/pages/<name>/`.
 
 ### OCR on CPU
 

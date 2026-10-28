@@ -1,0 +1,216 @@
+{
+  "target_lang": "Egyptian Arabic",
+  "native_lang": "English",
+  "topic": "Everyday Phrases",
+  "topic_source": "generated",
+  "boxes": [
+    {
+      "id": "B1",
+      "kind": "label"
+    },
+    {
+      "id": "B2",
+      "kind": "label"
+    },
+    {
+      "id": "B3",
+      "kind": "noise"
+    },
+    {
+      "id": "B4",
+      "kind": "noise"
+    },
+    {
+      "id": "B5",
+      "kind": "label"
+    },
+    {
+      "id": "B6",
+      "kind": "noise"
+    },
+    {
+      "id": "B7",
+      "kind": "noise"
+    },
+    {
+      "id": "B8",
+      "kind": "noise"
+    },
+    {
+      "id": "B9",
+      "kind": "label"
+    },
+    {
+      "id": "B10",
+      "kind": "noise"
+    },
+    {
+      "id": "B11",
+      "kind": "label"
+    },
+    {
+      "id": "B12",
+      "kind": "noise"
+    },
+    {
+      "id": "B13",
+      "kind": "noise"
+    },
+    {
+      "id": "B14",
+      "kind": "label"
+    },
+    {
+      "id": "B15",
+      "kind": "noise"
+    },
+    {
+      "id": "B16",
+      "kind": "noise"
+    },
+    {
+      "id": "B17",
+      "kind": "noise"
+    },
+    {
+      "id": "B18",
+      "kind": "label"
+    },
+    {
+      "id": "B19",
+      "kind": "noise"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "sentence",
+      "key": "بابا جي أمتى",
+      "front": "بابا جي أمتى",
+      "translation": "when will dad come",
+      "notes": "",
+      "image": null,
+      "production": true,
+      "production_reason": "Useful everyday question.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "جي الساعة ستة",
+      "front": "جي الساعة ستة",
+      "translation": "he will come at 6",
+      "notes": "",
+      "image": null,
+      "production": true,
+      "production_reason": "Common phrase for stating time.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "راكب ولا ماشي",
+      "front": "راكب ولا ماشي",
+      "translation": "on foot or ride?",
+      "notes": "Literally: riding or walking.",
+      "image": null,
+      "production": true,
+      "production_reason": "Useful pattern 'X ولا Y'.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "راكب بسكيلته",
+      "front": "راكب بسكيلته",
+      "translation": "riding a bike",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "Recognition is enough; specific phrase.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "حمرا ولا بيضة",
+      "front": "حمرا ولا بيضة",
+      "translation": "red or white?",
+      "notes": "",
+      "image": null,
+      "production": true,
+      "production_reason": "Useful choice question.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "بيضة زي القشطة",
+      "front": "بيضة زي القشطة",
+      "translation": "white like cream",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "Idiomatic comparison, recognition is enough.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "أفتحوله السكة",
+      "front": "أفتحوله السكة",
+      "translation": "please open",
+      "notes": "Literally: open the way for him.",
+      "image": null,
+      "production": false,
+      "production_reason": "Idiomatic, recognition first.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "وأضربوله سلام",
+      "front": "وأضربوله سلام",
+      "translation": "and salute / greet him",
+      "notes": "Literally: strike a salute for him.",
+      "image": null,
+      "production": false,
+      "production_reason": "Idiomatic, recognition first.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    }
+  ],
+  "flags": [
+    {
+      "message": "Your gloss 'please open?' doesn't match the Arabic well; it literally means 'open the way for him' (clear the way). Also the first word is usually written افتحوله (no hamza on the alif).",
+      "card": "أفتحوله السكة",
+      "field": "translation",
+      "suggestion": "open the way for him"
+    },
+    {
+      "message": "'White' (feminine) is usually spelled بيضا in Egyptian; you wrote بيضة (which also means 'egg'). Please check.",
+      "card": "بيضة زي القشطة",
+      "field": "front",
+      "suggestion": "بيضا زي القشطة"
+    },
+    {
+      "message": "The final word may be spelled بسكليتة/بسكلتة. Please check the spelling.",
+      "card": "راكب بسكيلته",
+      "field": "front",
+      "suggestion": "راكب بسكلتة"
+    },
+    {
+      "message": "No sketches on this page. The boxes are English gloss labels and Arabic letter fragments.",
+      "card": null,
+      "field": null,
+      "suggestion": null
+    }
+  ]
+}

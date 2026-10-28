@@ -2,7 +2,7 @@
 
 Photograph a page of your handwritten language notebook and get Anki flashcards from it, sketches included.
 
-![example page](examples/t2.png)
+![example page](examples/mandarin_components.png)
 
 1. **Box detection** (OpenCV) finds the hand-drawn boxes around your sketches and crops them.
 2. **Claude** reads the page, with **PaddleOCR** as a second opinion for diacritics, tones and non-Latin scripts. It matches sketches to words, works out language and topic, and follows instructions written on the page (e.g. "2 example sentences per word").
@@ -26,6 +26,8 @@ just dev         # server with auto-reload
 
 The UI runs at <http://localhost:8642>. Upload pages, wait for the proposal, review, commit. The `NB Vocab` and `NB Sentence` note types are created in Anki on the first commit (or under *Settings*).
 
-Uploaded pages and settings are stored in `data/`.
+Four demo pages from `examples/` are in the sidebar, already processed, so you can try the review step right away. They collapse once you add pages of your own.
+
+Uploaded pages and settings are stored in `data/`; you can choose another folder under *Settings*.
 
 More: [how it works](docs/architecture.md).

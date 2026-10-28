@@ -1,13 +1,16 @@
 import asyncio
 import json
+import os
 import re
+import shutil
 import socket
 import threading
 import time
 import webbrowser
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
+import cv2
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -17,11 +20,51 @@ from . import agent, anki, ocr
 from .extract import extract
 from .models import PageProposal, note_key
 
-DATA = Path(__file__).parent.parent / "data"
-PAGES = DATA / "pages"
-SETTINGS = DATA / "settings.json"
+ROOT = Path(__file__).parent.parent
+# where the data folder is, if not the default; settings.json lives in the data folder itself
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "language-sketchbook" / "config.json"
+EXAMPLES = ROOT / "examples"
 STATIC = Path(__file__).parent / "static"
 PORT = 8642
+BUSY = ("queued", "extracting", "thinking")
+
+
+def configured_data_dir() -> Path:
+    return Path(json.loads(CONFIG.read_text())["data_dir"]) if CONFIG.exists() else ROOT / "data"
+
+
+DATA = configured_data_dir()
+PAGES = DATA / "pages"
+SETTINGS = DATA / "settings.json"
+
+
+def use_data_dir(path: Path) -> None:
+    global DATA, PAGES, SETTINGS
+    DATA, PAGES, SETTINGS = path, path / "pages", path / "settings.json"
+    PAGES.mkdir(parents=True, exist_ok=True)
+    seed_demos()
+
+
+def seed_demos() -> None:
+    """Add each example page as a demo page, with its bundled results from examples/<name>/."""
+    for image in sorted(EXAMPLES.glob("*")):
+        d = PAGES / f"demo-{image.stem}"
+        if not image.is_file() or d.exists():
+            continue
+        processed = EXAMPLES / image.stem
+        if processed.is_dir():
+            shutil.copytree(processed, d)
+        else:
+            d.mkdir()
+        name = "page" + image.suffix.lower()
+        shutil.copy(image, d / name)
+        meta = {"id": d.name, "name": image.stem.replace("_", " ").capitalize(), "file": name,
+                "status": "ready", "created": 0, "demo": True}
+        if (d / "proposal.json").exists():
+            meta["name"] = PageProposal.model_validate_json((d / "proposal.json").read_text()).target_lang
+        else:
+            meta["status"] = "queued"  # without bundled results the demo is processed like an upload
+        (d / "meta.json").write_text(json.dumps(meta, indent=2))
 
 
 class Settings(BaseModel):
@@ -92,12 +135,12 @@ async def process(page_id: str):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    PAGES.mkdir(parents=True, exist_ok=True)
+    use_data_dir(DATA)
     load_settings()
     # pages interrupted by a restart go back into the queue
     for meta_file in sorted(PAGES.glob("*/meta.json")):
         meta = json.loads(meta_file.read_text())
-        if meta["status"] in ("queued", "extracting", "thinking"):
+        if meta["status"] in BUSY:
             queue.put_nowait(meta["id"])
     task = asyncio.create_task(worker())
     yield
@@ -127,6 +170,46 @@ def put_settings(s: Settings) -> Settings:
     DATA.mkdir(exist_ok=True)
     SETTINGS.write_text(s.model_dump_json(indent=2))
     return load_settings()
+
+
+class DataDir(BaseModel):
+    path: str
+
+
+@app.get("/data-dir")
+def get_data_dir() -> DataDir:
+    return DataDir(path=str(DATA))
+
+
+@app.put("/data-dir")
+def put_data_dir(body: DataDir) -> DataDir:
+    """Move the data folder to `path`, or switch to it if it already holds app data."""
+    new, old = Path(body.path).expanduser(), DATA.resolve()
+    if not new.is_absolute():
+        raise HTTPException(400, "Use an absolute path.")
+    new = new.resolve()
+    if new == old:
+        return get_data_dir()
+    if new.is_relative_to(old):
+        raise HTTPException(400, "The new folder can't be inside the current one.")
+    if any(m["status"] in BUSY for m in list_pages()):
+        raise HTTPException(409, "Wait until all pages are processed.")
+    try:
+        if not ((new / "pages").is_dir() or (new / "settings.json").exists()):
+            if new.exists() and (not new.is_dir() or any(new.iterdir())):
+                raise HTTPException(400, f"{new} isn't an empty folder.")
+            new.mkdir(parents=True, exist_ok=True)
+            for child in old.iterdir():
+                shutil.move(child, new / child.name)
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG.write_text(json.dumps({"data_dir": str(new)}, indent=2))
+        use_data_dir(new)
+    except OSError as e:
+        raise HTTPException(400, str(e))
+    with suppress(OSError):
+        old.rmdir()  # only if it's empty now
+    load_settings()
+    return get_data_dir()
 
 
 @app.get("/anki/status")
@@ -222,6 +305,20 @@ def page_file(page_id: str, name: str):
     if not re.fullmatch(r"[\w.-]+", name) or not path.is_file():
         raise HTTPException(404)
     return FileResponse(path)
+
+
+@app.get("/pages/{page_id}/thumb")
+def page_thumb(page_id: str):
+    """A small JPEG of the page for the sidebar, made on first request."""
+    thumb = page_dir(page_id) / "thumb.jpg"
+    if not thumb.exists():
+        img = cv2.imread(str(thumb.parent / read_meta(page_id)["file"]))
+        if img is None:
+            raise HTTPException(404)
+        h, w = img.shape[:2]
+        img = cv2.resize(img, (240, max(1, round(h * 240 / w))), interpolation=cv2.INTER_AREA)
+        cv2.imwrite(str(thumb), img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    return FileResponse(thumb)
 
 
 @app.get("/pages/{page_id}/events")

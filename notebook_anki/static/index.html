@@ -16,7 +16,7 @@
       --bg: #161616; --panel: #1f1f1f; --text: #ecebe7; --muted: #9a9a9a; --line: #333;
       --accent: #6c9cf0; --ok: #4cc283; --warn: #e0a243; --err: #ef6b5b; --chip: #2a2a2a;
     }
-    .sketch, .annotated { filter: invert(0.9); }
+    .sketch, .page-img, .thumb { filter: invert(0.9); }
   }
   * { box-sizing: border-box; }
   body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--text); }
@@ -29,12 +29,21 @@
   textarea { resize: vertical; min-height: 2.2em; }
   .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 50px); }
   aside { border-right: 1px solid var(--line); padding: 12px; background: var(--panel); }
-  main { padding: 16px 20px; max-width: 1200px; }
+  main { padding: 16px 20px; max-width: 1600px; min-width: 0; }
   .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 18px 10px; text-align: center; color: var(--muted); cursor: pointer; margin-bottom: 12px; }
   .drop.over { border-color: var(--accent); color: var(--accent); }
-  .page-item { padding: 7px 8px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+  .page-item { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
   .page-item:hover, .page-item.active { background: var(--chip); }
-  .page-item span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-item .info { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+  .page-item .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .thumb { width: 44px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: #fff; flex: none; }
+  .section { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 8px 4px; }
+  .empty { font-size: 13px; color: var(--muted); padding: 2px 8px; }
+  details.demos summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  details.demos summary::before { content: '▸'; margin-right: 6px; }
+  details.demos[open] summary::before { content: '▾'; }
+  details.demos summary span:first-child { margin-right: auto; }
+  .demo-note { background: var(--chip); border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; color: var(--muted); }
   .chip { font-size: 12px; padding: 1px 7px; border-radius: 10px; background: var(--chip); color: var(--muted); white-space: nowrap; }
   .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.err { color: var(--err); }
   .pill { font-size: 13px; }
@@ -57,7 +66,13 @@
   .card-flag { grid-column: span 2; font-size: 13px; color: var(--warn); }
   .toolbar { display: flex; gap: 10px; align-items: center; margin: 14px 0; }
   .log { font: 13px/1.5 ui-monospace, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; max-height: 60vh; overflow: auto; white-space: pre-wrap; }
-  .annotated { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 14px; }
+  .page-view { display: grid; grid-template-columns: minmax(260px, 38%) 1fr; gap: 20px; align-items: start; }
+  .page-view > * { min-width: 0; }
+  .page-pane { position: sticky; top: 16px; }
+  .page-img { display: block; max-width: 100%; max-height: calc(100vh - 70px); margin: 0 auto; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .page-toggle { display: flex; gap: 6px; justify-content: center; margin-top: 6px; font-size: 13px; }
+  .page-toggle button { font-size: 12px; padding: 1px 8px; }
+  .page-toggle button.on { background: var(--chip); border-color: var(--muted); }
   dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); width: min(440px, 92vw); }
   dialog .row { margin-bottom: 10px; }
   .results li.added { color: var(--ok); } .results li.updated { color: var(--accent); } .results li.error { color: var(--err); }
@@ -67,6 +82,9 @@
     .meta-grid, .fields { grid-template-columns: 1fr; }
     .fields .wide { grid-column: auto; }
     .card { grid-template-columns: 1fr; }
+    .page-view { grid-template-columns: 1fr; }
+    .page-pane { position: static; }
+    .page-img { max-height: 50vh; }
   }
 </style>
 </head>
@@ -88,21 +106,46 @@
       Drop notebook pages here<br>or click to choose
       <input type="file" x-ref="file" accept="image/*" multiple hidden @change="upload($event.target.files); $event.target.value = ''">
     </div>
-    <template x-for="p in pages" :key="p.id">
+    <div class="section">Your pages</div>
+    <div class="empty" x-show="!ownPages().length">None yet.</div>
+    <template x-for="p in ownPages()" :key="p.id">
       <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
-        <span x-text="p.name"></span>
-        <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+        <img class="thumb" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
+        <div class="info">
+          <span class="name" x-text="p.name" :title="p.name"></span>
+          <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+        </div>
       </div>
     </template>
+    <details class="demos" x-show="demoPages().length" :open="demosOpen" @toggle="demosOpen = $el.open">
+      <summary class="section"><span>Demo pages</span><span class="chip" x-text="demoPages().length"></span></summary>
+      <template x-for="p in demoPages()" :key="p.id">
+        <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
+          <img class="thumb" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
+          <div class="info">
+            <span class="name" x-text="p.name" :title="p.name"></span>
+            <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+          </div>
+        </div>
+      </template>
+    </details>
   </aside>
 
   <main>
     <template x-if="!detail">
-      <p style="color: var(--muted)">Upload a page, or pick one on the left.</p>
+      <p style="color: var(--muted)" x-text="ownPages().length ? 'Upload a page, or pick one on the left.' : 'Upload a page of your notebook, or open a demo page on the left to see what the app makes of one.'"></p>
     </template>
 
     <template x-if="detail">
-      <div>
+      <div class="page-view">
+        <div class="page-pane">
+          <a :href="pageImage()" target="_blank" title="Open full size"><img class="page-img" :src="pageImage()" alt="Notebook page"></a>
+          <div class="page-toggle" x-show="reviewing()">
+            <button :class="{ on: showBoxes }" @click="showBoxes = true">boxes</button>
+            <button :class="{ on: !showBoxes }" @click="showBoxes = false">original</button>
+          </div>
+        </div>
+        <div>
         <!-- processing -->
         <template x-if="['queued', 'extracting', 'thinking', 'error'].includes(detail.meta.status)">
           <div>
@@ -114,17 +157,16 @@
         </template>
 
         <!-- review -->
-        <template x-if="detail.proposal && ['ready', 'committed'].includes(detail.meta.status)">
+        <template x-if="reviewing()">
           <div>
+            <p class="demo-note" x-show="detail.meta.demo">Demo page: an example notebook page, already processed. Edit and explore freely; “Add to Anki” creates real cards.</p>
             <div class="meta-grid">
               <div><label class="f">Target language</label><input x-model="detail.proposal.target_lang"></div>
               <div><label class="f">Native language</label><input x-model="detail.proposal.native_lang"></div>
               <div><label class="f">Topic <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></label>
                 <input x-model="detail.proposal.topic"></div>
             </div>
-            <div class="deck">Deck: <b x-text="deckName()"></b>
-              · <a href="#" @click.prevent="showAnnotated = !showAnnotated" x-text="showAnnotated ? 'hide page' : 'show page'"></a></div>
-            <img class="annotated" x-show="showAnnotated" :src="file('annotated.png')">
+            <div class="deck">Deck: <b x-text="deckName()"></b></div>
             <p x-show="detail.anki_error" style="color: var(--err)" x-text="detail.anki_error"></p>
 
             <div class="flags" x-show="pageFlags().length">
@@ -181,6 +223,7 @@
             </div>
           </div>
         </template>
+        </div>
       </div>
     </template>
   </main>
@@ -195,6 +238,8 @@
   <div class="row"><label class="f">OCR device</label>
     <select x-model="settings.ocr_device"><option value="gpu">GPU (NVIDIA)</option><option value="cpu">CPU</option></select></div>
   <div class="row"><label class="f">AnkiConnect URL</label><input x-model="settings.anki_url"></div>
+  <div class="row"><label class="f">Data folder (pages and settings). Your data is moved there on save; if it already holds app data, that is used instead.</label>
+    <input x-model="dataDir"></div>
   <div class="row">
     <button @click="installNoteTypes()">Install / update note types</button>
     <span class="pill" :class="anki.ok ? 'ok' : 'err'" x-text="anki.ok ? (anki.note_types_installed ? 'installed' : 'not installed') : anki.error"></span>
@@ -208,14 +253,17 @@
 function app() {
   return {
     pages: [], selectedId: null, detail: null, log: [], source: null,
-    anki: { ok: false }, settings: {}, dragging: false, busy: false, showAnnotated: false,
+    anki: { ok: false }, settings: {}, dataDir: '', demosOpen: true, dragging: false, busy: false, showBoxes: true,
 
     async init() {
       this.refreshAnki();
       this.settings = await this.api('/settings');
       await this.loadPages();
       const fromHash = location.hash.slice(1);
-      if (this.pages.some(p => p.id === fromHash)) this.select(fromHash);
+      if (this.pages.some(p => p.id === fromHash)) {
+        if (fromHash.startsWith('demo-')) this.demosOpen = true;
+        this.select(fromHash);
+      }
       setInterval(() => this.loadPages(), 3000);
       setInterval(() => this.refreshAnki(), 10000);
     },
@@ -226,11 +274,16 @@ function app() {
     },
     async refreshAnki() { this.anki = await this.api('/anki/status'); },
     async loadPages() {
+      const hadOwn = this.ownPages().length;
       this.pages = await this.api('/pages');
+      // the demos make way once there are pages of your own
+      if (!hadOwn && this.ownPages().length) this.demosOpen = false;
       const cur = this.pages.find(p => p.id === this.selectedId);
       // reload the open page once it finishes processing
       if (cur && this.detail && cur.status !== this.detail.meta.status) this.select(cur.id, true);
     },
+    ownPages() { return this.pages.filter(p => !p.demo); },
+    demoPages() { return this.pages.filter(p => p.demo).sort((a, b) => a.name.localeCompare(b.name)); },
     async upload(files) {
       if (!files.length) return;
       const form = new FormData();
@@ -260,6 +313,9 @@ function app() {
     },
     statusClass(s) { return { ready: 'warn', committed: 'ok', error: 'err' }[s] || ''; },
     file(name) { return `/pages/${this.selectedId}/files/${name}`; },
+    reviewing() { return this.detail.proposal && ['ready', 'committed'].includes(this.detail.meta.status); },
+    // the annotated page shows the box ids the sketch picker refers to; it only exists once processed
+    pageImage() { return this.file(this.reviewing() && this.showBoxes ? 'annotated.png' : this.detail.meta.file); },
     deckName() {
       const p = this.detail.proposal;
       return [this.settings.deck_root, p.target_lang, p.topic].map(s => (s || '').trim()).filter(Boolean).join('::');
@@ -300,14 +356,22 @@ function app() {
     },
     async openSettings() {
       this.settings = await this.api('/settings');
+      this.dataDir = (await this.api('/data-dir')).path;
       this.$refs.settings.showModal();
     },
     async saveSettings() {
+      try {
+        // first, so settings.json is written to the new folder
+        await this.api('/data-dir', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: this.dataDir }),
+        });
+      } catch (e) { return alert(e.message); }
       this.settings = await this.api('/settings', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.settings),
       });
       this.$refs.settings.close();
       this.refreshAnki();
+      this.loadPages();
     },
     async installNoteTypes() {
       try { this.anki = await this.api('/anki/install', { method: 'POST' }); } catch (e) { alert(e.message); }

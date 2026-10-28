@@ -1,0 +1,501 @@
+{
+  "target_lang": "Italian",
+  "native_lang": "English",
+  "topic": "Kitchen Nouns",
+  "topic_source": "page",
+  "boxes": [
+    {
+      "id": "B1",
+      "kind": "title"
+    },
+    {
+      "id": "B2",
+      "kind": "sketch"
+    },
+    {
+      "id": "B3",
+      "kind": "sketch"
+    },
+    {
+      "id": "B4",
+      "kind": "sketch"
+    },
+    {
+      "id": "B5",
+      "kind": "sketch"
+    },
+    {
+      "id": "B6",
+      "kind": "sketch"
+    },
+    {
+      "id": "B7",
+      "kind": "sketch"
+    },
+    {
+      "id": "B8",
+      "kind": "sketch"
+    },
+    {
+      "id": "B9",
+      "kind": "sketch"
+    },
+    {
+      "id": "B10",
+      "kind": "sketch"
+    },
+    {
+      "id": "B11",
+      "kind": "sketch"
+    },
+    {
+      "id": "B12",
+      "kind": "sketch"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "vocab",
+      "key": "ricetta",
+      "front": "la ricetta",
+      "translation": "recipe",
+      "notes": "",
+      "image": "B3",
+      "production": true,
+      "production_reason": "Common everyday word.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Seguo sempre questa ricetta.",
+      "front": "Seguo sempre questa ricetta.",
+      "translation": "I always follow this recipe.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "ricetta",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Posso avere la ricetta?",
+      "front": "Posso avere la ricetta?",
+      "translation": "Can I have the recipe?",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "ricetta",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "colino",
+      "front": "il colino",
+      "translation": "strainer",
+      "notes": "Page also has a partly illegible word next to it, likely 'strainer' (English gloss).",
+      "image": "B2",
+      "production": true,
+      "production_reason": "Useful kitchen tool.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Usa il colino per il tè.",
+      "front": "Usa il colino per il tè.",
+      "translation": "Use the strainer for the tea.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "colino",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Dov'è il colino?",
+      "front": "Dov'è il colino?",
+      "translation": "Where is the strainer?",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "colino",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "farina",
+      "front": "la farina",
+      "translation": "flour",
+      "notes": "",
+      "image": "B4",
+      "production": true,
+      "production_reason": "Basic cooking ingredient.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Mi serve più farina.",
+      "front": "Mi serve più farina.",
+      "translation": "I need more flour.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "farina",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Aggiungi la farina lentamente.",
+      "front": "Aggiungi la farina lentamente.",
+      "translation": "Add the flour slowly.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "farina",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "piatto",
+      "front": "la piatto",
+      "translation": "Dish",
+      "notes": "Correct form is 'il piatto' (masculine); plural i piatti.",
+      "image": "B5",
+      "production": true,
+      "production_reason": "Very common word.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Il piatto è caldo.",
+      "front": "Il piatto è caldo.",
+      "translation": "The dish is hot.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "piatto",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Lava i piatti, per favore.",
+      "front": "Lava i piatti, per favore.",
+      "translation": "Wash the dishes, please.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "piatto",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "cibo",
+      "front": "il cibo",
+      "translation": "food",
+      "notes": "",
+      "image": "B6",
+      "production": true,
+      "production_reason": "Very common word.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Il cibo è pronto.",
+      "front": "Il cibo è pronto.",
+      "translation": "The food is ready.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "cibo",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Amo il cibo italiano.",
+      "front": "Amo il cibo italiano.",
+      "translation": "I love Italian food.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "cibo",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "padella",
+      "front": "la padella",
+      "translation": "frying pan",
+      "notes": "",
+      "image": "B7",
+      "production": true,
+      "production_reason": "Common kitchen item.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Scalda la padella prima.",
+      "front": "Scalda la padella prima.",
+      "translation": "Heat the pan first.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "padella",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Friggo l'uovo in padella.",
+      "front": "Friggo l'uovo in padella.",
+      "translation": "I fry the egg in the pan.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "padella",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "pentola",
+      "front": "la pentola",
+      "translation": "pot",
+      "notes": "",
+      "image": "B8",
+      "production": true,
+      "production_reason": "Common kitchen item.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Metti l'acqua nella pentola.",
+      "front": "Metti l'acqua nella pentola.",
+      "translation": "Put the water in the pot.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "pentola",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "La pentola bolle.",
+      "front": "La pentola bolle.",
+      "translation": "The pot is boiling.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "pentola",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "cucchiaio",
+      "front": "il cucchiaio",
+      "translation": "spoon",
+      "notes": "",
+      "image": "B9",
+      "production": true,
+      "production_reason": "Common everyday word.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Mi serve un cucchiaio.",
+      "front": "Mi serve un cucchiaio.",
+      "translation": "I need a spoon.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "cucchiaio",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Mescola con il cucchiaio.",
+      "front": "Mescola con il cucchiaio.",
+      "translation": "Stir with the spoon.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "cucchiaio",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "tagliere",
+      "front": "il tagliere",
+      "translation": "cutting board",
+      "notes": "Page spelling looks like 'il tagliere'.",
+      "image": "B10",
+      "production": true,
+      "production_reason": "Useful kitchen item.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Taglia sul tagliere.",
+      "front": "Taglia sul tagliere.",
+      "translation": "Cut on the cutting board.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "tagliere",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Lava il tagliere dopo.",
+      "front": "Lava il tagliere dopo.",
+      "translation": "Wash the cutting board afterwards.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "tagliere",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "ciotola",
+      "front": "la ciotola",
+      "translation": "bowl",
+      "notes": "",
+      "image": "B12",
+      "production": true,
+      "production_reason": "Common kitchen item.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Mescola tutto nella ciotola.",
+      "front": "Mescola tutto nella ciotola.",
+      "translation": "Mix everything in the bowl.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "ciotola",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Prendi una ciotola grande.",
+      "front": "Prendi una ciotola grande.",
+      "translation": "Get a big bowl.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "ciotola",
+      "include": true
+    },
+    {
+      "kind": "vocab",
+      "key": "mestolo",
+      "front": "il mestolo",
+      "translation": "ladle",
+      "notes": "",
+      "image": "B11",
+      "production": true,
+      "production_reason": "Useful kitchen item.",
+      "source": "page",
+      "related_key": "",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Servi la zuppa col mestolo.",
+      "front": "Servi la zuppa col mestolo.",
+      "translation": "Serve the soup with the ladle.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "mestolo",
+      "include": true
+    },
+    {
+      "kind": "sentence",
+      "key": "Passami il mestolo, per favore.",
+      "front": "Passami il mestolo, per favore.",
+      "translation": "Pass me the ladle, please.",
+      "notes": "",
+      "image": null,
+      "production": false,
+      "production_reason": "",
+      "source": "generated",
+      "related_key": "mestolo",
+      "include": true
+    }
+  ],
+  "flags": [
+    {
+      "message": "Written 'la piatto' but 'piatto' is masculine.",
+      "card": "piatto",
+      "field": "front",
+      "suggestion": "il piatto"
+    },
+    {
+      "message": "Word next to 'il colino' is partly illegible (looks like 'strainer'); I used 'strainer' as the gloss.",
+      "card": "colino",
+      "field": null,
+      "suggestion": null
+    }
+  ]
+}
