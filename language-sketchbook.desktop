@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Language Sketchbook
+Comment=Turn handwritten language notebook pages into Anki cards
+Exec=uv --directory /ABS/PATH/TO/language-sketchbook-to-anki run python -m notebook_anki
+Icon=language-sketchbook
+Terminal=false
+Categories=Education;

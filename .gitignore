@@ -1,0 +1,9 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# local state: uploaded pages, proposals, settings
+data/
+# debug output of `python -m notebook_anki.extract`
+out/

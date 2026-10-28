@@ -1,0 +1,37 @@
+.card {
+  font-family: system-ui, sans-serif;
+  font-size: 22px;
+  text-align: center;
+  color: #1d1d1f;
+  background: #fbfaf7;
+  line-height: 1.4;
+}
+.nightMode.card, .card.night_mode {
+  color: #e8e6e1;
+  background: #1f1f1f;
+}
+.main {
+  font-size: 34px;
+  font-weight: 600;
+  margin: 0.4em 0;
+}
+.translation {
+  font-size: 26px;
+  margin: 0.4em 0;
+}
+.sketch img {
+  max-width: min(320px, 80vw);
+  max-height: 320px;
+  margin: 0.5em auto;
+}
+.nightMode .sketch img, .night_mode .sketch img {
+  filter: invert(1);
+}
+.notes {
+  font-size: 17px;
+  color: #6b6b6b;
+  max-width: 34em;
+  margin: 0.8em auto 0;
+  text-align: left;
+  white-space: pre-line;
+}

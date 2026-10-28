@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Language Sketchbook</title>
+<link rel="icon" href="/icon.svg">
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b6b; --line: #e2e0da;
+    --accent: #2f6fdb; --ok: #1f8a4c; --warn: #b26a00; --err: #c0392b; --chip: #efede7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161616; --panel: #1f1f1f; --text: #ecebe7; --muted: #9a9a9a; --line: #333;
+      --accent: #6c9cf0; --ok: #4cc283; --warn: #e0a243; --err: #ef6b5b; --chip: #2a2a2a;
+    }
+    .sketch, .annotated { filter: invert(0.9); }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 17px; margin: 0; margin-right: auto; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, textarea, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 4px 7px; width: 100%; }
+  textarea { resize: vertical; min-height: 2.2em; }
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 50px); }
+  aside { border-right: 1px solid var(--line); padding: 12px; background: var(--panel); }
+  main { padding: 16px 20px; max-width: 1200px; }
+  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 18px 10px; text-align: center; color: var(--muted); cursor: pointer; margin-bottom: 12px; }
+  .drop.over { border-color: var(--accent); color: var(--accent); }
+  .page-item { padding: 7px 8px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+  .page-item:hover, .page-item.active { background: var(--chip); }
+  .page-item span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip { font-size: 12px; padding: 1px 7px; border-radius: 10px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+  .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.err { color: var(--err); }
+  .pill { font-size: 13px; }
+  .pill.ok { color: var(--ok); } .pill.err { color: var(--err); }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); }
+  .deck { color: var(--muted); margin-bottom: 14px; }
+  .deck b { color: var(--text); }
+  .flags { border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+  .flag { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; }
+  .flag button { font-size: 12px; padding: 1px 8px; }
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
+  .card.off { opacity: .45; }
+  .card .side { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .sketch { max-width: 120px; max-height: 120px; background: #fff; border-radius: 4px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fields .wide { grid-column: span 2; }
+  .was { font-size: 12px; color: var(--muted); }
+  .card-flag { grid-column: span 2; font-size: 13px; color: var(--warn); }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin: 14px 0; }
+  .log { font: 13px/1.5 ui-monospace, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; max-height: 60vh; overflow: auto; white-space: pre-wrap; }
+  .annotated { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 14px; }
+  dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); width: min(440px, 92vw); }
+  dialog .row { margin-bottom: 10px; }
+  .results li.added { color: var(--ok); } .results li.updated { color: var(--accent); } .results li.error { color: var(--err); }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    .meta-grid, .fields { grid-template-columns: 1fr; }
+    .fields .wide { grid-column: auto; }
+    .card { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body x-data="app()" x-init="init()">
+
+<header>
+  <h1>Language Sketchbook → Anki</h1>
+  <span class="pill" :class="anki.ok ? 'ok' : 'err'"
+        x-text="anki.ok ? `Anki: ${anki.profile}` + (anki.note_types_installed ? '' : ' (note types missing)') : 'Anki not reachable'"></span>
+  <button @click="openSettings()">Settings</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="drop" :class="{ over: dragging }"
+         @click="$refs.file.click()"
+         @dragover.prevent="dragging = true" @dragleave="dragging = false"
+         @drop.prevent="dragging = false; upload($event.dataTransfer.files)">
+      Drop notebook pages here<br>or click to choose
+      <input type="file" x-ref="file" accept="image/*" multiple hidden @change="upload($event.target.files); $event.target.value = ''">
+    </div>
+    <template x-for="p in pages" :key="p.id">
+      <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
+        <span x-text="p.name"></span>
+        <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+      </div>
+    </template>
+  </aside>
+
+  <main>
+    <template x-if="!detail">
+      <p style="color: var(--muted)">Upload a page, or pick one on the left.</p>
+    </template>
+
+    <template x-if="detail">
+      <div>
+        <!-- processing -->
+        <template x-if="['queued', 'extracting', 'thinking', 'error'].includes(detail.meta.status)">
+          <div>
+            <h2 x-text="detail.meta.name"></h2>
+            <p x-show="detail.meta.error" style="color: var(--err)" x-text="detail.meta.error"></p>
+            <div class="log" x-ref="log"><template x-for="e in log"><div x-text="formatEvent(e)"></div></template></div>
+            <div class="toolbar" x-show="detail.meta.status === 'error'"><button @click="rerun()">Retry</button></div>
+          </div>
+        </template>
+
+        <!-- review -->
+        <template x-if="detail.proposal && ['ready', 'committed'].includes(detail.meta.status)">
+          <div>
+            <div class="meta-grid">
+              <div><label class="f">Target language</label><input x-model="detail.proposal.target_lang"></div>
+              <div><label class="f">Native language</label><input x-model="detail.proposal.native_lang"></div>
+              <div><label class="f">Topic <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></label>
+                <input x-model="detail.proposal.topic"></div>
+            </div>
+            <div class="deck">Deck: <b x-text="deckName()"></b>
+              · <a href="#" @click.prevent="showAnnotated = !showAnnotated" x-text="showAnnotated ? 'hide page' : 'show page'"></a></div>
+            <img class="annotated" x-show="showAnnotated" :src="file('annotated.png')">
+            <p x-show="detail.anki_error" style="color: var(--err)" x-text="detail.anki_error"></p>
+
+            <div class="flags" x-show="pageFlags().length">
+              <template x-for="f in pageFlags()">
+                <div class="flag"><span>⚠</span><span x-text="f.message"></span></div>
+              </template>
+            </div>
+
+            <div class="toolbar">
+              <span x-text="`${detail.proposal.cards.filter(c => c.include).length} of ${detail.proposal.cards.length} cards selected`"></span>
+              <button @click="setAll(true)">All</button><button @click="setAll(false)">None</button>
+              <span style="margin-left: auto"></span>
+              <button @click="rerun()">Re-run</button>
+              <button class="primary" :disabled="busy || !anki.ok" @click="commit()" x-text="busy ? 'Saving…' : 'Add to Anki'"></button>
+            </div>
+
+            <div class="results" x-show="detail.commit">
+              <b>Last commit:</b>
+              <span x-text="commitSummary()"></span>
+              <ul><template x-for="r in (detail.commit || []).filter(r => r.action === 'error')"><li class="error" x-text="`${r.key}: ${r.error}`"></li></template></ul>
+            </div>
+
+            <div class="cards">
+              <template x-for="(c, i) in detail.proposal.cards" :key="i">
+                <div class="card" :class="{ off: !c.include }">
+                  <div class="side">
+                    <label><input type="checkbox" x-model="c.include" style="width: auto"> include</label>
+                    <span class="chip" x-text="c.kind + (c.source === 'generated' ? ' · generated' : '')"></span>
+                    <span class="chip" :class="detail.existing[i] ? 'warn' : 'ok'" x-text="detail.existing[i] ? 'update' : 'new'"></span>
+                    <img class="sketch" x-show="c.image" :src="c.image ? file(c.image + '.png') : ''">
+                    <select x-model="c.image" @change="if (c.image === '') c.image = null">
+                      <option value="">no sketch</option>
+                      <template x-for="b in sketchBoxes()"><option :value="b" x-text="b" :selected="b === c.image"></option></template>
+                    </select>
+                    <label :title="c.production_reason"><input type="checkbox" x-model="c.production" style="width: auto"> production card</label>
+                  </div>
+                  <div class="fields">
+                    <div><label class="f">Front</label><input dir="auto" x-model="c.front">
+                      <div class="was" x-show="was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)" x-text="'in Anki: ' + was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)"></div></div>
+                    <div><label class="f">Translation</label><input dir="auto" x-model="c.translation">
+                      <div class="was" x-show="was(i, 'Translation', c.translation)" x-text="'in Anki: ' + was(i, 'Translation', c.translation)"></div></div>
+                    <div class="wide"><label class="f">Notes</label><textarea dir="auto" x-model="c.notes" rows="2"></textarea></div>
+                    <div class="was wide" x-show="c.production_reason" x-text="'Direction: ' + c.production_reason"></div>
+                    <template x-for="f in cardFlags(i)">
+                      <div class="card-flag">⚠ <span x-text="f.message"></span>
+                        <template x-if="f.suggestion !== null && f.field && c[f.field] !== f.suggestion">
+                          <button @click="applyFlag(f)" x-text="`use “${f.suggestion}”`"></button>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </main>
+</div>
+
+<dialog x-ref="settings">
+  <h3>Settings</h3>
+  <div class="row"><label class="f">Main deck (all language decks go under it; empty = top level)</label>
+    <input x-model="settings.deck_root"></div>
+  <div class="row"><label class="f">Claude model</label>
+    <select x-model="settings.model"><option>sonnet</option><option>opus</option><option>haiku</option></select></div>
+  <div class="row"><label class="f">OCR device</label>
+    <select x-model="settings.ocr_device"><option value="gpu">GPU (NVIDIA)</option><option value="cpu">CPU</option></select></div>
+  <div class="row"><label class="f">AnkiConnect URL</label><input x-model="settings.anki_url"></div>
+  <div class="row">
+    <button @click="installNoteTypes()">Install / update note types</button>
+    <span class="pill" :class="anki.ok ? 'ok' : 'err'" x-text="anki.ok ? (anki.note_types_installed ? 'installed' : 'not installed') : anki.error"></span>
+  </div>
+  <div class="toolbar"><span style="margin-left: auto"></span>
+    <button @click="$refs.settings.close()">Cancel</button>
+    <button class="primary" @click="saveSettings()">Save</button></div>
+</dialog>
+
+<script>
+function app() {
+  return {
+    pages: [], selectedId: null, detail: null, log: [], source: null,
+    anki: { ok: false }, settings: {}, dragging: false, busy: false, showAnnotated: false,
+
+    async init() {
+      this.refreshAnki();
+      this.settings = await this.api('/settings');
+      await this.loadPages();
+      const fromHash = location.hash.slice(1);
+      if (this.pages.some(p => p.id === fromHash)) this.select(fromHash);
+      setInterval(() => this.loadPages(), 3000);
+      setInterval(() => this.refreshAnki(), 10000);
+    },
+    async api(path, opts = {}) {
+      const r = await fetch(path, opts);
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+      return r.json();
+    },
+    async refreshAnki() { this.anki = await this.api('/anki/status'); },
+    async loadPages() {
+      this.pages = await this.api('/pages');
+      const cur = this.pages.find(p => p.id === this.selectedId);
+      // reload the open page once it finishes processing
+      if (cur && this.detail && cur.status !== this.detail.meta.status) this.select(cur.id, true);
+    },
+    async upload(files) {
+      if (!files.length) return;
+      const form = new FormData();
+      for (const f of files) form.append('files', f);
+      const created = await this.api('/pages', { method: 'POST', body: form });
+      await this.loadPages();
+      this.select(created[0].id);
+    },
+    async select(id, keepLog = false) {
+      this.selectedId = id;
+      history.replaceState(null, '', `#${id}`);
+      this.detail = await this.api(`/pages/${id}`);
+      if (keepLog) return;
+      this.log = [];
+      if (this.source) this.source.close();
+      this.source = new EventSource(`/pages/${id}/events`);
+      this.source.onmessage = (m) => {
+        this.log.push(JSON.parse(m.data));
+        this.$nextTick(() => { if (this.$refs.log) this.$refs.log.scrollTop = 1e9; });
+      };
+    },
+    formatEvent(e) {
+      if (e.type === 'status') return `— ${e.status}${e.error ? ': ' + e.error : ''}`;
+      if (e.type === 'tool') return `→ ${e.name} ${e.detail}`;
+      if (e.type === 'done') return `✓ done in ${e.turns} turns` + (e.cost_usd ? ` (~$${e.cost_usd.toFixed(3)} API-equivalent)` : '');
+      return e.text;
+    },
+    statusClass(s) { return { ready: 'warn', committed: 'ok', error: 'err' }[s] || ''; },
+    file(name) { return `/pages/${this.selectedId}/files/${name}`; },
+    deckName() {
+      const p = this.detail.proposal;
+      return [this.settings.deck_root, p.target_lang, p.topic].map(s => (s || '').trim()).filter(Boolean).join('::');
+    },
+    sketchBoxes() { return this.detail.proposal.boxes.filter(b => b.kind === 'sketch').map(b => b.id); },
+    pageFlags() { return this.detail.proposal.flags.filter(f => f.card === null || f.card === undefined); },
+    cardFlags(i) { return this.detail.proposal.flags.filter(f => f.card === this.detail.proposal.cards[i].key); },
+    applyFlag(f) {
+      const c = this.detail.proposal.cards.find(c => c.key === f.card);
+      if (f.field in c) c[f.field] = f.suggestion;
+      this.detail.proposal.flags = this.detail.proposal.flags.filter(x => x !== f);
+    },
+    was(i, field, current) {
+      const old = this.detail.existing[i]?.fields?.[field];
+      return old !== undefined && old !== current ? old : '';
+    },
+    setAll(v) { this.detail.proposal.cards.forEach(c => c.include = v); },
+    commitSummary() {
+      const n = (a) => (this.detail.commit || []).filter(r => r.action === a).length;
+      return `${n('added')} added, ${n('updated')} updated, ${n('error')} errors`;
+    },
+    async rerun() {
+      await this.api(`/pages/${this.selectedId}/rerun`, { method: 'POST' });
+      await this.loadPages();
+      this.select(this.selectedId);
+    },
+    async commit() {
+      this.busy = true;
+      try {
+        await this.api(`/pages/${this.selectedId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.detail.proposal),
+        });
+        await this.api(`/pages/${this.selectedId}/commit`, { method: 'POST' });
+        await this.select(this.selectedId, true);
+        await this.loadPages();
+      } catch (e) { alert(e.message); }
+      this.busy = false;
+    },
+    async openSettings() {
+      this.settings = await this.api('/settings');
+      this.$refs.settings.showModal();
+    },
+    async saveSettings() {
+      this.settings = await this.api('/settings', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.settings),
+      });
+      this.$refs.settings.close();
+      this.refreshAnki();
+    },
+    async installNoteTypes() {
+      try { this.anki = await this.api('/anki/install', { method: 'POST' }); } catch (e) { alert(e.message); }
+    },
+  };
+}
+</script>
+</body>
+</html>
