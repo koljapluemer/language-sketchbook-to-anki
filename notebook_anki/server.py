@@ -127,8 +127,39 @@ async def process(page_id: str):
     emit(page_id, {"type": "text", "text": f"Found {len(boxes)} candidate boxes."})
     write_meta(page_id, status="thinking")
     settings = load_settings()
-    await agent.run(d, meta["file"], model=settings.model, on_event=lambda e: emit(page_id, e))
+    previous = d / meta["previous"] if meta.get("previous") else None
+    await agent.run(d, meta["file"], model=settings.model, on_event=lambda e: emit(page_id, e), previous=previous)
+    if previous:
+        merge_previous(d, previous)
     write_meta(page_id, status="ready")
+
+
+# fields the learner may have edited in the review; carried over to the next version
+EDITABLE = ("front", "translation", "notes", "production")
+
+
+def merge_previous(d: Path, previous: Path) -> None:
+    """Keep the learner's review decisions from the previous version where the agent left
+    a card as it was: deselected cards stay deselected, edited fields keep the edit."""
+    proposal = PageProposal.model_validate_json((d / "proposal.json").read_text())
+    reviewed = PageProposal.model_validate_json(previous.read_text())
+    agent_file = previous.parent / "proposal.agent.json"
+    # without the agent's own output (e.g. bundled demos) edits can't be told apart, so only `include` carries over
+    agent_out = PageProposal.model_validate_json(agent_file.read_text()) if agent_file.exists() else None
+    before = {note_key(reviewed.target_lang, c): c for c in reviewed.cards}
+    by_agent = {note_key(agent_out.target_lang, c): c for c in agent_out.cards} if agent_out else {}
+    for card in proposal.cards:
+        key = note_key(proposal.target_lang, card)
+        if not (old := before.get(key)):
+            continue
+        if not old.include:
+            card.include = False
+        if agent_old := by_agent.get(key):
+            for f in EDITABLE:
+                edited = getattr(old, f) != getattr(agent_old, f)
+                if edited and getattr(card, f) == getattr(agent_old, f):
+                    setattr(card, f, getattr(old, f))
+    (d / "proposal.json").write_text(proposal.model_dump_json(indent=2))
 
 
 @asynccontextmanager
@@ -264,6 +295,35 @@ async def rerun(page_id: str):
     return read_meta(page_id)
 
 
+@app.post("/pages/{page_id}/photo")
+async def update_photo(page_id: str, file: UploadFile):
+    """Replace the page's photo, e.g. after adding notes. The current version is kept in
+    versions/<n>/ and its reviewed proposal is the starting point for the new run."""
+    d = page_dir(page_id)
+    meta = read_meta(page_id)
+    if meta["status"] in BUSY:
+        raise HTTPException(409, "Wait until the page is processed.")
+    changes = {}
+    if (d / "proposal.json").exists():
+        version = meta.get("version", 0)
+        archive = d / "versions" / str(version)
+        archive.mkdir(parents=True)
+        for child in list(d.iterdir()):
+            if child.name not in ("meta.json", "versions"):
+                shutil.move(child, archive / child.name)
+        changes = {"version": version + 1, "previous": f"versions/{version}/proposal.json"}
+    else:
+        # never processed: nothing to keep, just swap the photo
+        (d / meta["file"]).unlink(missing_ok=True)
+        (d / "thumb.jpg").unlink(missing_ok=True)
+    name = "page" + (Path(file.filename or "").suffix.lower() or ".jpg")
+    (d / name).write_bytes(await file.read())
+    events[page_id] = []
+    write_meta(page_id, file=name, status="queued", error=None, **changes)
+    await queue.put(page_id)
+    return read_meta(page_id)
+
+
 @app.get("/pages/{page_id}")
 def get_page(page_id: str):
     d = page_dir(page_id)
@@ -282,6 +342,17 @@ def get_page(page_id: str):
             result["anki_error"] = str(e)
     if (d / "commit.json").exists():
         result["commit"] = json.loads((d / "commit.json").read_text())
+    previous = result["meta"].get("previous")
+    if result["proposal"] and previous and (d / previous).exists():
+        old = PageProposal.model_validate_json((d / previous).read_text())
+        old_commit = (d / previous).parent / "commit.json"
+        committed = {r["key"] for r in json.loads(old_commit.read_text()) if r["action"] != "error"} if old_commit.exists() else set()
+        before = {note_key(old.target_lang, c): c for c in old.cards}
+        # previous card per card, in card order (None: new on this version)
+        result["previous"] = [before[k].model_dump() if k in before else None for k in keys]
+        result["dropped"] = [
+            {**c.model_dump(), "committed": k in committed} for k, c in before.items() if k not in set(keys)
+        ]
     return result
 
 

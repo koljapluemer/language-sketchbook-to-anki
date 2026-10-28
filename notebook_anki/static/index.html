@@ -59,6 +59,9 @@
   .cards { display: flex; flex-direction: column; gap: 10px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
   .card.off { opacity: .45; }
+  .dropped { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+  .dropped div { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; }
+  .dropped button { font-size: 12px; padding: 1px 8px; }
   .card .side { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
   .sketch { max-width: 120px; max-height: 120px; background: #fff; border-radius: 4px; }
   .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -115,7 +118,8 @@
         <div class="info">
           <span class="name" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
           <span class="lang" x-show="pageLang(p)" x-text="pageLang(p)"></span>
-          <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+          <span><span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+            <span class="chip" x-show="p.version" x-text="`v${p.version + 1}`"></span></span>
         </div>
       </div>
     </template>
@@ -127,7 +131,8 @@
           <div class="info">
             <span class="name" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
             <span class="lang" x-show="pageLang(p)" x-text="pageLang(p)"></span>
-            <span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+            <span><span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
+              <span class="chip" x-show="p.version" x-text="`v${p.version + 1}`"></span></span>
           </div>
         </div>
       </template>
@@ -152,7 +157,7 @@
         <!-- processing -->
         <template x-if="['queued', 'extracting', 'thinking', 'error'].includes(detail.meta.status)">
           <div>
-            <h2 x-text="pageTitle(detail.meta)"></h2>
+            <h2 x-text="pageTitle(detail.meta) + (detail.meta.version ? ` (version ${detail.meta.version + 1})` : '')"></h2>
             <p x-show="detail.meta.error" style="color: var(--err)" x-text="detail.meta.error"></p>
             <div class="log" x-ref="log"><template x-for="e in log"><div x-text="formatEvent(e)"></div></template></div>
             <div class="toolbar" x-show="detail.meta.status === 'error'"><button @click="rerun()">Retry</button></div>
@@ -172,6 +177,15 @@
             <div class="deck">Deck: <b x-text="deckName()"></b></div>
             <p x-show="detail.anki_error" style="color: var(--err)" x-text="detail.anki_error"></p>
 
+            <div class="dropped" x-show="detail.dropped?.length">
+              <b>No longer on the page</b> <span class="was">(nothing is removed from Anki)</span>
+              <template x-for="c in detail.dropped || []">
+                <div><span x-text="`${c.front} – ${c.translation}`"></span>
+                  <span class="chip" x-show="c.committed">in Anki</span>
+                  <button @click="keepDropped(c)">Keep</button></div>
+              </template>
+            </div>
+
             <div class="flags" x-show="pageFlags().length">
               <template x-for="f in pageFlags()">
                 <div class="flag"><span>⚠</span><span x-text="f.message"></span></div>
@@ -181,7 +195,11 @@
             <div class="toolbar">
               <span x-text="`${detail.proposal.cards.filter(c => c.include).length} of ${detail.proposal.cards.length} cards selected`"></span>
               <button @click="setAll(true)">All</button><button @click="setAll(false)">None</button>
+              <label x-show="unchangedCount()" style="width: auto"><input type="checkbox" x-model="showUnchanged" style="width: auto">
+                <span x-text="`show unchanged (${unchangedCount()})`"></span></label>
               <span style="margin-left: auto"></span>
+              <button @click="$refs.photo.click()" title="Added notes to this page? Upload a new photo of it; your review decisions are kept.">Update photo</button>
+              <input type="file" x-ref="photo" accept="image/*" hidden @change="updatePhoto($event.target.files[0]); $event.target.value = ''">
               <button @click="rerun()">Re-run</button>
               <button class="primary" :disabled="busy || !anki.ok" @click="commit()" x-text="busy ? 'Saving…' : 'Add to Anki'"></button>
             </div>
@@ -194,11 +212,12 @@
 
             <div class="cards">
               <template x-for="(c, i) in detail.proposal.cards" :key="i">
-                <div class="card" :class="{ off: !c.include }">
+                <div class="card" :class="{ off: !c.include }" x-show="showUnchanged || versionStatus(i) !== 'unchanged'">
                   <div class="side">
                     <label><input type="checkbox" x-model="c.include" style="width: auto"> include</label>
                     <span class="chip" x-text="c.kind + (c.source === 'generated' ? ' · generated' : '')"></span>
                     <span class="chip" :class="detail.existing[i] ? 'warn' : 'ok'" x-text="detail.existing[i] ? 'update' : 'new'"></span>
+                    <span class="chip" x-show="versionStatus(i)" :class="{ ok: versionStatus(i) === 'new on page', warn: versionStatus(i) === 'changed' }" x-text="versionStatus(i)"></span>
                     <img class="sketch" x-show="c.image" :src="c.image ? file(c.image + '.png') : ''">
                     <select x-model="c.image" @change="if (c.image === '') c.image = null">
                       <option value="">no sketch</option>
@@ -208,10 +227,13 @@
                   </div>
                   <div class="fields">
                     <div><label class="f">Front</label><input dir="auto" x-model="c.front">
-                      <div class="was" x-show="was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)" x-text="'in Anki: ' + was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)"></div></div>
+                      <div class="was" x-show="was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)" x-text="'in Anki: ' + was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)"></div>
+                      <div class="was" x-show="before(i, 'front')" x-text="'before: ' + before(i, 'front')"></div></div>
                     <div><label class="f">Translation</label><input dir="auto" x-model="c.translation">
-                      <div class="was" x-show="was(i, 'Translation', c.translation)" x-text="'in Anki: ' + was(i, 'Translation', c.translation)"></div></div>
-                    <div class="wide"><label class="f">Notes</label><textarea dir="auto" x-model="c.notes" rows="2"></textarea></div>
+                      <div class="was" x-show="was(i, 'Translation', c.translation)" x-text="'in Anki: ' + was(i, 'Translation', c.translation)"></div>
+                      <div class="was" x-show="before(i, 'translation')" x-text="'before: ' + before(i, 'translation')"></div></div>
+                    <div class="wide"><label class="f">Notes</label><textarea dir="auto" x-model="c.notes" rows="2"></textarea>
+                      <div class="was" x-show="before(i, 'notes')" x-text="'before: ' + before(i, 'notes')"></div></div>
                     <div class="was wide" x-show="c.production_reason" x-text="'Direction: ' + c.production_reason"></div>
                     <template x-for="f in cardFlags(i)">
                       <div class="card-flag">⚠ <span x-text="f.message"></span>
@@ -256,7 +278,7 @@
 function app() {
   return {
     pages: [], selectedId: null, detail: null, log: [], source: null,
-    anki: { ok: false }, settings: {}, dataDir: '', demosOpen: true, dragging: false, busy: false, showBoxes: true,
+    anki: { ok: false }, settings: {}, dataDir: '', demosOpen: true, dragging: false, busy: false, showBoxes: true, showUnchanged: false,
 
     async init() {
       this.refreshAnki();
@@ -340,12 +362,44 @@ function app() {
       return old !== undefined && old !== current ? old : '';
     },
     setAll(v) { this.detail.proposal.cards.forEach(c => c.include = v); },
+    // compared with the page's previous version (after "Update photo"); '' when there is none
+    versionStatus(i) {
+      if (!this.detail.previous) return '';
+      const old = this.detail.previous[i], c = this.detail.proposal.cards[i];
+      if (!old) return 'new on page';
+      return ['front', 'translation', 'notes', 'production'].some(f => old[f] !== c[f]) ? 'changed' : 'unchanged';
+    },
+    unchangedCount() { return this.detail.proposal.cards.filter((_, i) => this.versionStatus(i) === 'unchanged').length; },
+    before(i, field) {
+      const old = this.detail.previous?.[i]?.[field];
+      return old !== undefined && old !== this.detail.proposal.cards[i][field] ? old : '';
+    },
+    async keepDropped(c) {
+      // its sketch box id belongs to the old photo
+      const { committed, ...card } = c;
+      this.detail.proposal.cards.push({ ...card, image: null });
+      await this.save();
+      // the server lines the kept card up with Anki and the previous version again
+      this.select(this.selectedId, true);
+    },
     commitSummary() {
       const n = (a) => (this.detail.commit || []).filter(r => r.action === a).length;
       return `${n('added')} added, ${n('updated')} updated, ${n('error')} errors`;
     },
     async rerun() {
       await this.api(`/pages/${this.selectedId}/rerun`, { method: 'POST' });
+      await this.loadPages();
+      this.select(this.selectedId);
+    },
+    async updatePhoto(file) {
+      if (!file) return;
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        // edits not yet saved belong to the version being archived
+        await this.save();
+        await this.api(`/pages/${this.selectedId}/photo`, { method: 'POST', body: form });
+      } catch (e) { return alert(e.message); }
       await this.loadPages();
       this.select(this.selectedId);
     },

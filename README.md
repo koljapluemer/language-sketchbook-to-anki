@@ -6,7 +6,7 @@ Photograph a page of your handwritten language notebook and get Anki flashcards 
 
 1. **Box detection** (OpenCV) finds the hand-drawn boxes around your sketches and crops them.
 2. **Claude** reads the page, with **PaddleOCR** as a second opinion for diacritics, tones and non-Latin scripts. It matches sketches to words, works out language and topic, and follows instructions written on the page (e.g. "2 example sentences per word").
-3. **You review** the proposed cards in a local web UI: edit, deselect cards, apply suggested fixes from flagged doubts.
+3. **You review** the proposed cards in a local web UI: edit, deselect cards, apply suggested fixes from flagged doubts. Added notes to a page later? *Update photo* on it: your review decisions are kept and only what changed needs a look.
 4. **Commit** to Anki via AnkiConnect, into a deck per language and topic. Notes already in Anki are updated in place, so their review history stays.
 
 ## Requirements

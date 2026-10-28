@@ -59,9 +59,11 @@ def _error(msg: str) -> dict:
 
 
 class Job:
-    def __init__(self, page_dir: Path, page_file: str):
+    def __init__(self, page_dir: Path, page_file: str, previous: Path | None = None):
         self.dir = page_dir
         self.page_file = page_file
+        # the reviewed proposal of the page's previous version, when this is an updated photo
+        self.previous = PageProposal.model_validate_json(previous.read_text()) if previous else None
         self.img = cv2.imread(str(page_dir / page_file))
         self.boxes = {b["id"]: b["bbox"] for b in json.loads((page_dir / "boxes.json").read_text())}
         self.lines: list[dict] = []
@@ -171,6 +173,11 @@ class Job:
                     errors.append(f"{img} is used as image but not labelled sketch")
             if dupes := {i for i in used if used.count(i) > 1}:
                 errors.append(f"Each sketch belongs to at most one card: {sorted(dupes)}")
+            if self.previous:
+                # a different topic or language would put new cards into another deck
+                for field in ("topic", "target_lang"):
+                    if getattr(proposal, field) != getattr(self.previous, field):
+                        errors.append(f"Keep the {field} of the previous version: {getattr(self.previous, field)!r}")
             keys = {c.key for c in proposal.cards}
             for f in proposal.flags:
                 if f.card is not None and f.card not in keys:
@@ -178,7 +185,9 @@ class Job:
             if errors:
                 return _error("\n".join(errors))
             self.proposal = proposal
-            (self.dir / "proposal.json").write_text(proposal.model_dump_json(indent=2))
+            # proposal.json gets the learner's edits; the agent's own output stays next to it
+            for name in ("proposal.json", "proposal.agent.json"):
+                (self.dir / name).write_text(proposal.model_dump_json(indent=2))
             return _text(f"Saved: {len(proposal.cards)} cards for deck {proposal.deck()}.")
 
         return [ocr_tool, layout_hints, anki_lookup, submit_proposal]
@@ -193,8 +202,9 @@ def _preview(src: Path, dst: Path, max_side: int = 1568) -> float:
     return scale
 
 
-async def run(page_dir: Path, page_file: str, model: str = "sonnet", on_event: Callable[[dict], None] = print) -> PageProposal:
-    job = Job(page_dir, page_file)
+async def run(page_dir: Path, page_file: str, model: str = "sonnet", on_event: Callable[[dict], None] = print,
+              previous: Path | None = None) -> PageProposal:
+    job = Job(page_dir, page_file, previous)
     server = create_sdk_mcp_server(SERVER, tools=job.tools())
     tool_names = [f"mcp__{SERVER}__{t}" for t in ("ocr", "layout_hints", "anki_lookup", "submit_proposal")]
     h, w = job.img.shape[:2]
@@ -217,6 +227,12 @@ async def run(page_dir: Path, page_file: str, model: str = "sonnet", on_event: C
         f"(boxes, OCR, regions) are in original pixels.\n"
         f"candidate boxes: {json.dumps(job.boxes)}"
     )
+    if job.previous:
+        prompt += (
+            "\n\nThis is an updated photo of a page processed before (see \"Updated pages\"). "
+            "Previous proposal as reviewed by the learner; its `image` box ids belong to the old photo:\n"
+            + job.previous.model_dump_json(include={"target_lang", "native_lang", "topic", "cards", "flags"}, indent=1)
+        )
     async with ClaudeSDKClient(options) as client:
         await client.query(prompt)
         async for msg in client.receive_response():

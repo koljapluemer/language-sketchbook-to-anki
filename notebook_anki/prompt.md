@@ -28,3 +28,11 @@ You turn one photographed page of a learner's handwritten language notebook into
 - Keep the learner's spelling in `front` and `translation`. If you think something is wrong (wrong gender, typo, wrong translation), add a flag with the card's `key`, the field and a `suggestion`; do not silently change it. OCR misreads are not learner errors: fix those directly.
 - Use `flags` also for unclear matches, illegible words, or anything the learner should decide.
 - Never invent vocabulary that is not on the page, except content an on-page instruction asks for.
+
+## Updated pages
+When the prompt includes a previous proposal, the learner has added notes to a page you processed before.
+- The previous proposal is what the learner reviewed: treat its values (translations, notes, production, deselected cards) as their decisions.
+- Keep `target_lang` and `topic` exactly as they were.
+- Carry existing cards over unchanged, with the same `key`, unless the page now says something different about them (e.g. a plural or usage note added next to a word goes into that card's `notes`).
+- Add cards for the new content. Match sketches again: box ids refer to the new photo.
+- If a previous card's content is gone or crossed out, leave the card out and add a page flag naming it; don't drop it silently.

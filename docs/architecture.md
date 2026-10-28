@@ -8,7 +8,7 @@ Each uploaded page gets its own folder in `<data folder>/pages/<id>/` and goes t
 |---|---|---|
 | `queued` | waiting for the worker | `page.*`, `meta.json` |
 | `extracting` | box detection (`extract.py`) | `B1.png`…, `boxes.json`, `annotated.png` |
-| `thinking` | Claude agent (`agent.py`) | `claude_page.jpg`, `claude_annotated.jpg`, `proposal.json` |
+| `thinking` | Claude agent (`agent.py`) | `claude_page.jpg`, `claude_annotated.jpg`, `proposal.json` (edited in review), `proposal.agent.json` (as submitted) |
 | `ready` | waiting for review in the UI | |
 | `committed` | written to Anki (`anki.py`) | `commit.json` |
 
@@ -52,6 +52,14 @@ Notes are identified by the `Key` field: `language|kind|normalized key`. A card 
 Stored in `<data folder>/settings.json`, editable in the UI: Claude model, OCR device, AnkiConnect URL, deck root.
 
 The data folder is `data/` in the repo unless set otherwise under *Settings*; that choice is kept in `~/.config/language-sketchbook/config.json`. Changing it moves your pages and settings to the new folder, or, if the new folder already holds app data, switches to it.
+
+## Updating a page
+
+Added notes to a page after processing it? *Update photo* replaces the photo of the same page. Everything but `meta.json` moves to `versions/<n>/`, and `meta.json` records the new `version` and the `previous` proposal. The page then runs through the pipeline again, with these differences:
+
+- The agent gets the previous proposal, as reviewed, in its prompt (see "Updated pages" in `prompt.md`). `submit_proposal` rejects a changed `topic` or `target_lang`, so new cards land in the page's deck.
+- Afterwards `server.merge_previous` restores review decisions on cards with the same note key: deselected cards stay deselected, and an edited field (front, translation, notes, production) keeps the edit unless the agent changed that field. Edits are found by comparing the reviewed `proposal.json` with `proposal.agent.json`; without it (bundled demos) only deselections carry over.
+- The review marks each card as new on the page, changed (showing the previous values) or unchanged (hidden by default). Cards of the previous version that are missing now are listed separately and can be kept. Nothing is deleted from Anki.
 
 ## Demo pages
 
