@@ -45,6 +45,16 @@ uv run python -m notebook_anki.agent examples/mandarin_components.png sonnet
 
 Two note types, `NB Vocab` and `NB Sentence`, each with a recognition card and an optional production card (enabled per note via the `Production` field; turning it off later suspends the card). Templates live in `notebook_anki/note_types/`.
 
+A sentence card can instead be drilled as a cloze (`cloze` in the proposal), written as a third note type, `NB Cloze` (an Anki cloze type):
+
+| drill | NB Sentence | NB Cloze |
+|---|---|---|
+| translate (no cloze) | recognition, optional production | |
+| focus | | one card blanking the word the sentence illustrates (`focus` chunks, with `hint`) |
+| build | recognition | card k blanks the last k chunks, up to the whole sentence; nested clozes, Anki 2.1.56+ |
+
+The sentence's `chunks` come from Claude, since where words begin and end (inflection, attached prefixes, no spaces) needs the language; code only checks that they join back to the sentence (`Cloze.problems`). In review, switching the drill or editing the sentence asks Claude again (`POST /pages/<id>/cloze`, one Haiku call with the "Cloze" rules from `prompt.md`); chunks can also be merged and split by hand. Cloze notes are keyed `language|focus|…` / `language|build|…` next to the sentence's own note, so each drill keeps its history. Switching drills suspends the cards of the drills no longer used, and build cards beyond the current number of chunks.
+
 Notes are identified by the `Key` field: `language|kind|normalized key`. A card whose key already exists updates that note's fields and leaves its deck alone; new notes go into `<deck root>::<language>::<topic>`. All notes are tagged `nb` and `nb::<language>::<topic>`, generated content additionally `generated`.
 
 ## Settings

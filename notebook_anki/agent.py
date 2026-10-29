@@ -21,9 +21,11 @@ from pydantic import ValidationError
 from scipy.optimize import linear_sum_assignment
 
 from . import anki, ocr
-from .models import PageProposal, note_key
+from .models import Card, Cloze, PageProposal, note_key
 
 PROMPT = (Path(__file__).parent / "prompt.md").read_text()
+# the "Cloze" section of the prompt, shared with `rechunk`
+CLOZE_RULES = PROMPT.split("## Cloze\n", 1)[1].split("\n## ", 1)[0].strip()
 SERVER = "nb"
 
 
@@ -142,8 +144,6 @@ class Job:
             },
         )
         async def anki_lookup(args):
-            from .models import Card
-
             keys = [
                 note_key(args["target_lang"], Card(kind=c["kind"], key=c["key"], front="", translation="", production=False))
                 for c in args["cards"]
@@ -178,6 +178,11 @@ class Job:
                 for field in ("topic", "target_lang"):
                     if getattr(proposal, field) != getattr(self.previous, field):
                         errors.append(f"Keep the {field} of the previous version: {getattr(self.previous, field)!r}")
+            for c in proposal.cards:
+                if c.cloze and c.kind != "sentence":
+                    errors.append(f"Cloze is for sentence cards only: {c.key!r}")
+                elif c.cloze:
+                    errors += [f"Cloze of {c.key!r}: {p}" for p in c.cloze.problems(c.front)]
             keys = {c.key for c in proposal.cards}
             for f in proposal.flags:
                 if f.card is not None and f.card not in keys:
@@ -191,6 +196,46 @@ class Job:
             return _text(f"Saved: {len(proposal.cards)} cards for deck {proposal.deck()}.")
 
         return [ocr_tool, layout_hints, anki_lookup, submit_proposal]
+
+
+async def rechunk(card: Card, mode: str, target_lang: str, native_lang: str, related: Card | None = None,
+                  model: str = "haiku") -> Cloze:
+    """Chunks (and focus) for one sentence card, e.g. after the learner edited it in review."""
+    result: list[Cloze] = []
+
+    @tool("submit_cloze", "Submit the cloze for the sentence.", _inline_refs(Cloze.model_json_schema()))
+    async def submit_cloze(args):
+        try:
+            cloze = Cloze.model_validate(args)
+        except ValidationError as e:
+            return _error(str(e))
+        if cloze.mode != mode:
+            return _error(f"mode must be {mode!r}")
+        if problems := cloze.problems(card.front):
+            return _error("\n".join(problems))
+        result.append(cloze)
+        return _text("Saved.")
+
+    server = create_sdk_mcp_server(SERVER, tools=[submit_cloze])
+    options = ClaudeAgentOptions(
+        system_prompt=f"You split {target_lang} sentences for cloze flashcards of a learner whose native language "
+        f"is {native_lang}. Call `submit_cloze` once; if it returns errors, fix them and call it again.\n\n{CLOZE_RULES}",
+        model=model,
+        tools=[],
+        allowed_tools=[f"mcp__{SERVER}__submit_cloze"],
+        mcp_servers={SERVER: server},
+        max_turns=6,
+    )
+    prompt = f"mode: {mode}\nsentence (front): {card.front}\ntranslation: {card.translation}"
+    if related:
+        prompt += f"\nthe vocab word it illustrates: {related.front} ({related.translation})"
+    async with ClaudeSDKClient(options) as client:
+        await client.query(prompt)
+        async for _ in client.receive_response():
+            pass
+    if not result:
+        raise RuntimeError("Claude finished without a valid cloze.")
+    return result[-1]
 
 
 def _preview(src: Path, dst: Path, max_side: int = 1568) -> float:

@@ -1,244 +1,205 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Language Sketchbook</title>
 <link rel="icon" href="/icon.svg">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5.7.50/daisyui.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.3"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
-<style>
-  :root {
-    --bg: #f6f5f1; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b6b; --line: #e2e0da;
-    --accent: #2f6fdb; --ok: #1f8a4c; --warn: #b26a00; --err: #c0392b; --chip: #efede7;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #161616; --panel: #1f1f1f; --text: #ecebe7; --muted: #9a9a9a; --line: #333;
-      --accent: #6c9cf0; --ok: #4cc283; --warn: #e0a243; --err: #ef6b5b; --chip: #2a2a2a;
-    }
-    .sketch, .page-img, .thumb { filter: invert(0.9); }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--text); }
-  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
-  header h1 { font-size: 17px; margin: 0; margin-right: auto; }
-  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button:disabled { opacity: .5; cursor: default; }
-  input, textarea, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 4px 7px; width: 100%; }
-  textarea { resize: vertical; min-height: 2.2em; }
-  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 50px); }
-  aside { border-right: 1px solid var(--line); padding: 12px; background: var(--panel); }
-  main { padding: 16px 20px; max-width: 1600px; min-width: 0; }
-  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 18px 10px; text-align: center; color: var(--muted); cursor: pointer; margin-bottom: 12px; }
-  .drop.over { border-color: var(--accent); color: var(--accent); }
-  .page-item { padding: 6px 8px; border-radius: 6px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
-  .page-item:hover, .page-item.active { background: var(--chip); }
-  .page-item .info { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
-  .page-item .lang { font-size: 12px; color: var(--muted); }
-  .page-item .name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .thumb { width: 44px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: #fff; flex: none; }
-  .section { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 8px 4px; }
-  .empty { font-size: 13px; color: var(--muted); padding: 2px 8px; }
-  details.demos summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-  details.demos summary::before { content: '▸'; margin-right: 6px; }
-  details.demos[open] summary::before { content: '▾'; }
-  details.demos summary span:first-child { margin-right: auto; }
-  .demo-note { background: var(--chip); border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; color: var(--muted); }
-  .chip { font-size: 12px; padding: 1px 7px; border-radius: 10px; background: var(--chip); color: var(--muted); white-space: nowrap; }
-  .chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.err { color: var(--err); }
-  .pill { font-size: 13px; }
-  .pill.ok { color: var(--ok); } .pill.err { color: var(--err); }
-  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
-  label.f { display: block; font-size: 12px; color: var(--muted); }
-  .deck { color: var(--muted); margin-bottom: 14px; }
-  .deck b { color: var(--text); }
-  .flags { border: 1px solid var(--warn); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
-  .flag { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; }
-  .flag button { font-size: 12px; padding: 1px 8px; }
-  .cards { display: flex; flex-direction: column; gap: 10px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
-  .card.off { opacity: .45; }
-  .dropped { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
-  .dropped div { display: flex; gap: 10px; align-items: baseline; padding: 3px 0; }
-  .dropped button { font-size: 12px; padding: 1px 8px; }
-  .card .side { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-  .sketch { max-width: 120px; max-height: 120px; background: #fff; border-radius: 4px; }
-  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .fields .wide { grid-column: span 2; }
-  .was { font-size: 12px; color: var(--muted); }
-  .card-flag { grid-column: span 2; font-size: 13px; color: var(--warn); }
-  .toolbar { display: flex; gap: 10px; align-items: center; margin: 14px 0; }
-  .log { font: 13px/1.5 ui-monospace, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; max-height: 60vh; overflow: auto; white-space: pre-wrap; }
-  .page-view { display: grid; grid-template-columns: minmax(260px, 38%) 1fr; gap: 20px; align-items: start; }
-  .page-view > * { min-width: 0; }
-  .page-pane { position: sticky; top: 16px; }
-  .page-img { display: block; max-width: 100%; max-height: calc(100vh - 70px); margin: 0 auto; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
-  .page-toggle { display: flex; gap: 6px; justify-content: center; margin-top: 6px; font-size: 13px; }
-  .page-toggle button { font-size: 12px; padding: 1px 8px; }
-  .page-toggle button.on { background: var(--chip); border-color: var(--muted); }
-  dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); width: min(440px, 92vw); }
-  dialog .row { margin-bottom: 10px; }
-  .results li.added { color: var(--ok); } .results li.updated { color: var(--accent); } .results li.error { color: var(--err); }
-  @media (max-width: 760px) {
-    .layout { grid-template-columns: 1fr; }
-    aside { border-right: 0; border-bottom: 1px solid var(--line); }
-    .meta-grid, .fields { grid-template-columns: 1fr; }
-    .fields .wide { grid-column: auto; }
-    .card { grid-template-columns: 1fr; }
-    .page-view { grid-template-columns: 1fr; }
-    .page-pane { position: static; }
-    .page-img { max-height: 50vh; }
-  }
-</style>
 </head>
-<body x-data="app()" x-init="init()">
+<body class="bg-base-200 min-h-screen text-[15px]" x-data="app()" x-init="init()">
 
-<header>
-  <h1>Language Sketchbook → Anki</h1>
-  <span class="pill" :class="anki.ok ? 'ok' : 'err'"
+<header class="navbar bg-base-100 border-b border-base-300 gap-3 px-4 min-h-0 py-2">
+  <h1 class="text-lg font-semibold mr-auto">Language Sketchbook → Anki</h1>
+  <span class="badge badge-soft" :class="anki.ok ? 'badge-success' : 'badge-error'"
         x-text="anki.ok ? `Anki: ${anki.profile}` + (anki.note_types_installed ? '' : ' (note types missing)') : 'Anki not reachable'"></span>
-  <button @click="openSettings()">Settings</button>
+  <button class="btn btn-sm" @click="openSettings()">Settings</button>
 </header>
 
-<div class="layout">
-  <aside>
-    <div class="drop" :class="{ over: dragging }"
+<div class="grid grid-cols-1 md:grid-cols-[260px_1fr] min-h-[calc(100vh-50px)]">
+  <aside class="bg-base-100 p-3 border-b md:border-b-0 md:border-r border-base-300">
+    <div class="border-2 border-dashed rounded-box p-4 text-center cursor-pointer mb-3"
+         :class="dragging ? 'border-primary text-primary' : 'border-base-300 opacity-70'"
          @click="$refs.file.click()"
          @dragover.prevent="dragging = true" @dragleave="dragging = false"
          @drop.prevent="dragging = false; upload($event.dataTransfer.files)">
       Drop notebook pages here<br>or click to choose
       <input type="file" x-ref="file" accept="image/*" multiple hidden @change="upload($event.target.files); $event.target.value = ''">
     </div>
-    <div class="section">Your pages</div>
-    <div class="empty" x-show="!ownPages().length">None yet.</div>
-    <template x-for="p in ownPages()" :key="p.id">
-      <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
-        <img class="thumb" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
-        <div class="info">
-          <span class="name" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
-          <span class="lang" x-show="pageLang(p)" x-text="pageLang(p)"></span>
-          <span><span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
-            <span class="chip" x-show="p.version" x-text="`v${p.version + 1}`"></span></span>
-        </div>
-      </div>
-    </template>
-    <details class="demos" x-show="demoPages().length" :open="demosOpen" @toggle="demosOpen = $el.open">
-      <summary class="section"><span>Demo pages</span><span class="chip" x-text="demoPages().length"></span></summary>
-      <template x-for="p in demoPages()" :key="p.id">
-        <div class="page-item" :class="{ active: p.id === selectedId }" @click="select(p.id)">
-          <img class="thumb" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
-          <div class="info">
-            <span class="name" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
-            <span class="lang" x-show="pageLang(p)" x-text="pageLang(p)"></span>
-            <span><span class="chip" :class="statusClass(p.status)" x-text="p.status"></span>
-              <span class="chip" x-show="p.version" x-text="`v${p.version + 1}`"></span></span>
+    <div class="text-xs uppercase tracking-wide opacity-60 mx-2 mt-3 mb-1">Your pages</div>
+    <div class="text-sm opacity-60 px-2" x-show="!ownPages().length">None yet.</div>
+    <ul class="menu w-full p-0">
+      <template x-for="p in ownPages()" :key="p.id">
+        <li><a class="flex gap-3 items-center" :class="{ 'menu-active': p.id === selectedId }" @click="select(p.id)">
+          <img class="w-11 h-14 object-cover rounded border border-base-300 bg-white flex-none invert-90" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
+          <div class="flex flex-col items-start gap-1 min-w-0">
+            <span class="max-w-full truncate" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
+            <span class="text-xs opacity-60" x-show="pageLang(p)" x-text="pageLang(p)"></span>
+            <span class="flex gap-1"><span class="badge badge-sm badge-soft" :class="statusClass(p.status)" x-text="p.status"></span>
+              <span class="badge badge-sm badge-soft" x-show="p.version" x-text="`v${p.version + 1}`"></span></span>
           </div>
-        </div>
+        </a></li>
       </template>
+    </ul>
+    <details class="collapse collapse-arrow mt-2" x-show="demoPages().length" :open="demosOpen" @toggle="demosOpen = $el.open">
+      <summary class="collapse-title min-h-0 py-2 px-2 text-xs uppercase tracking-wide opacity-60 after:top-3">
+        Demo pages <span class="badge badge-sm badge-soft ml-1" x-text="demoPages().length"></span></summary>
+      <ul class="collapse-content menu w-full p-0">
+        <template x-for="p in demoPages()" :key="p.id">
+          <li><a class="flex gap-3 items-center" :class="{ 'menu-active': p.id === selectedId }" @click="select(p.id)">
+            <img class="w-11 h-14 object-cover rounded border border-base-300 bg-white flex-none invert-90" :src="`/pages/${p.id}/thumb`" loading="lazy" alt="" @error="$el.style.visibility = 'hidden'">
+            <div class="flex flex-col items-start gap-1 min-w-0">
+              <span class="max-w-full truncate" x-text="pageTitle(p)" :title="pageTitle(p)"></span>
+              <span class="text-xs opacity-60" x-show="pageLang(p)" x-text="pageLang(p)"></span>
+              <span class="flex gap-1"><span class="badge badge-sm badge-soft" :class="statusClass(p.status)" x-text="p.status"></span>
+                <span class="badge badge-sm badge-soft" x-show="p.version" x-text="`v${p.version + 1}`"></span></span>
+            </div>
+          </a></li>
+        </template>
+      </ul>
     </details>
   </aside>
 
-  <main>
+  <main class="px-5 py-4 max-w-[1600px] min-w-0">
     <template x-if="!detail">
-      <p style="color: var(--muted)" x-text="ownPages().length ? 'Upload a page, or pick one on the left.' : 'Upload a page of your notebook, or open a demo page on the left to see what the app makes of one.'"></p>
+      <p class="opacity-60" x-text="ownPages().length ? 'Upload a page, or pick one on the left.' : 'Upload a page of your notebook, or open a demo page on the left to see what the app makes of one.'"></p>
     </template>
 
     <template x-if="detail">
-      <div class="page-view">
-        <div class="page-pane">
-          <a :href="pageImage()" target="_blank" title="Open full size"><img class="page-img" :src="pageImage()" alt="Notebook page"></a>
-          <div class="page-toggle" x-show="reviewing()">
-            <button :class="{ on: showBoxes }" @click="showBoxes = true">boxes</button>
-            <button :class="{ on: !showBoxes }" @click="showBoxes = false">original</button>
+      <div class="grid grid-cols-1 md:grid-cols-[minmax(260px,38%)_1fr] gap-5 items-start">
+        <div class="min-w-0 md:sticky md:top-4">
+          <a :href="pageImage()" target="_blank" title="Open full size"><img class="block max-w-full max-h-[50vh] md:max-h-[calc(100vh-70px)] mx-auto object-contain border border-base-300 rounded-box bg-white invert-90" :src="pageImage()" alt="Notebook page"></a>
+          <div class="flex justify-center mt-2" x-show="reviewing()">
+            <div class="join">
+              <button class="btn btn-xs join-item" :class="{ 'btn-active': showBoxes }" @click="showBoxes = true">boxes</button>
+              <button class="btn btn-xs join-item" :class="{ 'btn-active': !showBoxes }" @click="showBoxes = false">original</button>
+            </div>
           </div>
         </div>
-        <div>
+        <div class="min-w-0">
         <!-- processing -->
         <template x-if="['queued', 'extracting', 'thinking', 'error'].includes(detail.meta.status)">
           <div>
-            <h2 x-text="pageTitle(detail.meta) + (detail.meta.version ? ` (version ${detail.meta.version + 1})` : '')"></h2>
-            <p x-show="detail.meta.error" style="color: var(--err)" x-text="detail.meta.error"></p>
-            <div class="log" x-ref="log"><template x-for="e in log"><div x-text="formatEvent(e)"></div></template></div>
-            <div class="toolbar" x-show="detail.meta.status === 'error'"><button @click="rerun()">Retry</button></div>
+            <h2 class="text-xl font-semibold mb-3" x-text="pageTitle(detail.meta) + (detail.meta.version ? ` (version ${detail.meta.version + 1})` : '')"></h2>
+            <p x-show="detail.meta.error" class="text-error mb-3" x-text="detail.meta.error"></p>
+            <div class="bg-base-100 border border-base-300 rounded-box px-3 py-2 font-mono text-sm max-h-[60vh] overflow-auto whitespace-pre-wrap" x-ref="log"><template x-for="e in log"><div x-text="formatEvent(e)"></div></template></div>
+            <div class="flex gap-2 my-3" x-show="detail.meta.status === 'error'"><button class="btn btn-sm" @click="rerun()">Retry</button></div>
           </div>
         </template>
 
         <!-- review -->
         <template x-if="reviewing()">
           <div>
-            <p class="demo-note" x-show="detail.meta.demo">Demo page: an example notebook page, already processed. Edit and explore freely; “Add to Anki” creates real cards.</p>
-            <div class="meta-grid">
-              <div><label class="f">Target language</label><input x-model="detail.proposal.target_lang" @change="save()"></div>
-              <div><label class="f">Native language</label><input x-model="detail.proposal.native_lang" @change="save()"></div>
-              <div><label class="f">Title: page name and deck <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></label>
-                <input x-model="detail.proposal.topic" @change="save()"></div>
+            <div role="alert" class="alert alert-soft mb-4" x-show="detail.meta.demo">Demo page: an example notebook page, already processed. Edit and explore freely; “Add to Anki” creates real cards.</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label><span class="text-xs opacity-70">Target language</span><input class="input input-sm w-full" x-model="detail.proposal.target_lang" @change="save()"></label>
+              <label><span class="text-xs opacity-70">Native language</span><input class="input input-sm w-full" x-model="detail.proposal.native_lang" @change="save()"></label>
+              <label><span class="text-xs opacity-70">Title: page name and deck <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></span>
+                <input class="input input-sm w-full" x-model="detail.proposal.topic" @change="save()"></label>
             </div>
-            <div class="deck">Deck: <b x-text="deckName()"></b></div>
-            <p x-show="detail.anki_error" style="color: var(--err)" x-text="detail.anki_error"></p>
+            <div class="opacity-70 mt-2 mb-4">Deck: <b x-text="deckName()"></b></div>
+            <p x-show="detail.anki_error" class="text-error mb-3" x-text="detail.anki_error"></p>
 
-            <div class="dropped" x-show="detail.dropped?.length">
-              <b>No longer on the page</b> <span class="was">(nothing is removed from Anki)</span>
+            <div class="card card-border bg-base-100 px-3 py-2 mb-4" x-show="detail.dropped?.length">
+              <div><b>No longer on the page</b> <span class="text-xs opacity-60">(nothing is removed from Anki)</span></div>
               <template x-for="c in detail.dropped || []">
-                <div><span x-text="`${c.front} – ${c.translation}`"></span>
-                  <span class="chip" x-show="c.committed">in Anki</span>
-                  <button @click="keepDropped(c)">Keep</button></div>
+                <div class="flex gap-2 items-baseline py-1"><span x-text="`${c.front} – ${c.translation}`"></span>
+                  <span class="badge badge-sm badge-soft" x-show="c.committed">in Anki</span>
+                  <button class="btn btn-xs" @click="keepDropped(c)">Keep</button></div>
               </template>
             </div>
 
-            <div class="flags" x-show="pageFlags().length">
+            <div role="alert" class="alert alert-warning alert-soft flex-col items-start gap-1 mb-4" x-show="pageFlags().length">
               <template x-for="f in pageFlags()">
-                <div class="flag"><span>⚠</span><span x-text="f.message"></span></div>
+                <div>⚠ <span x-text="f.message"></span></div>
               </template>
             </div>
 
-            <div class="toolbar">
+            <div class="flex flex-wrap gap-2 items-center my-4">
               <span x-text="`${detail.proposal.cards.filter(c => c.include).length} of ${detail.proposal.cards.length} cards selected`"></span>
-              <button @click="setAll(true)">All</button><button @click="setAll(false)">None</button>
-              <label x-show="unchangedCount()" style="width: auto"><input type="checkbox" x-model="showUnchanged" style="width: auto">
+              <button class="btn btn-sm" @click="setAll(true)">All</button><button class="btn btn-sm" @click="setAll(false)">None</button>
+              <label class="flex gap-2 items-center" x-show="unchangedCount()"><input type="checkbox" class="checkbox checkbox-sm" x-model="showUnchanged">
                 <span x-text="`show unchanged (${unchangedCount()})`"></span></label>
-              <span style="margin-left: auto"></span>
-              <button @click="$refs.photo.click()" title="Added notes to this page? Upload a new photo of it; your review decisions are kept.">Update photo</button>
+              <span class="ml-auto"></span>
+              <button class="btn btn-sm" @click="$refs.photo.click()" title="Added notes to this page? Upload a new photo of it; your review decisions are kept.">Update photo</button>
               <input type="file" x-ref="photo" accept="image/*" hidden @change="updatePhoto($event.target.files[0]); $event.target.value = ''">
-              <button @click="rerun()">Re-run</button>
-              <button class="primary" :disabled="busy || !anki.ok" @click="commit()" x-text="busy ? 'Saving…' : 'Add to Anki'"></button>
+              <button class="btn btn-sm" @click="rerun()">Re-run</button>
+              <span class="text-sm text-warning" x-show="invalidCount()" x-text="`${invalidCount()} cloze card(s) to fix`"></span>
+              <button class="btn btn-sm btn-primary" :disabled="busy || !anki.ok || invalidCount() > 0" :title="!anki.ok ? 'Anki is not reachable' : invalidCount() > 0 ? 'Fix the cloze cards marked ⚠ first' : ''" @click="commit()" x-text="busy ? 'Saving…' : 'Add to Anki'"></button>
             </div>
 
-            <div class="results" x-show="detail.commit">
+            <div class="mb-4" x-show="detail.commit">
               <b>Last commit:</b>
               <span x-text="commitSummary()"></span>
-              <ul><template x-for="r in (detail.commit || []).filter(r => r.action === 'error')"><li class="error" x-text="`${r.key}: ${r.error}`"></li></template></ul>
+              <ul><template x-for="r in (detail.commit || []).filter(r => r.action === 'error')"><li class="text-error" x-text="`${r.key}: ${r.error}`"></li></template></ul>
             </div>
 
-            <div class="cards">
+            <div class="flex flex-col gap-3">
               <template x-for="(c, i) in detail.proposal.cards" :key="i">
-                <div class="card" :class="{ off: !c.include }" x-show="showUnchanged || versionStatus(i) !== 'unchanged'">
-                  <div class="side">
-                    <label><input type="checkbox" x-model="c.include" style="width: auto"> include</label>
-                    <span class="chip" x-text="c.kind + (c.source === 'generated' ? ' · generated' : '')"></span>
-                    <span class="chip" :class="detail.existing[i] ? 'warn' : 'ok'" x-text="detail.existing[i] ? 'update' : 'new'"></span>
-                    <span class="chip" x-show="versionStatus(i)" :class="{ ok: versionStatus(i) === 'new on page', warn: versionStatus(i) === 'changed' }" x-text="versionStatus(i)"></span>
-                    <img class="sketch" x-show="c.image" :src="c.image ? file(c.image + '.png') : ''">
-                    <select x-model="c.image" @change="if (c.image === '') c.image = null">
+                <div class="card card-border bg-base-100 p-3 grid grid-cols-1 md:grid-cols-[130px_1fr] gap-3" :class="{ 'opacity-45': !c.include }" x-show="showUnchanged || versionStatus(i) !== 'unchanged'">
+                  <div class="flex flex-col gap-2 items-start">
+                    <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" x-model="c.include"> include</label>
+                    <span class="badge badge-sm badge-soft" x-text="c.kind + (c.source === 'generated' ? ' · generated' : '')"></span>
+                    <span class="badge badge-sm badge-soft" :class="detail.existing[i] ? 'badge-warning' : 'badge-success'" x-text="detail.existing[i] ? 'update' : 'new'"></span>
+                    <span class="badge badge-sm badge-soft" x-show="versionStatus(i)" :class="{ 'badge-success': versionStatus(i) === 'new on page', 'badge-warning': versionStatus(i) === 'changed' }" x-text="versionStatus(i)"></span>
+                    <img class="max-w-[120px] max-h-[120px] bg-white rounded invert-90" x-show="c.image" :src="c.image ? file(c.image + '.png') : ''">
+                    <select class="select select-sm w-full" x-model="c.image" @change="if (c.image === '') c.image = null">
                       <option value="">no sketch</option>
                       <template x-for="b in sketchBoxes()"><option :value="b" x-text="b" :selected="b === c.image"></option></template>
                     </select>
-                    <label :title="c.production_reason"><input type="checkbox" x-model="c.production" style="width: auto"> production card</label>
+                    <label class="flex gap-2 items-center" x-show="!c.cloze" :title="c.production_reason"><input type="checkbox" class="checkbox checkbox-sm" x-model="c.production"> production card</label>
                   </div>
-                  <div class="fields">
-                    <div><label class="f">Front</label><input dir="auto" x-model="c.front">
-                      <div class="was" x-show="was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)" x-text="'in Anki: ' + was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)"></div>
-                      <div class="was" x-show="before(i, 'front')" x-text="'before: ' + before(i, 'front')"></div></div>
-                    <div><label class="f">Translation</label><input dir="auto" x-model="c.translation">
-                      <div class="was" x-show="was(i, 'Translation', c.translation)" x-text="'in Anki: ' + was(i, 'Translation', c.translation)"></div>
-                      <div class="was" x-show="before(i, 'translation')" x-text="'before: ' + before(i, 'translation')"></div></div>
-                    <div class="wide"><label class="f">Notes</label><textarea dir="auto" x-model="c.notes" rows="2"></textarea>
-                      <div class="was" x-show="before(i, 'notes')" x-text="'before: ' + before(i, 'notes')"></div></div>
-                    <div class="was wide" x-show="c.production_reason" x-text="'Direction: ' + c.production_reason"></div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2 content-start">
+                    <label><span class="text-xs opacity-70">Front</span><input class="input input-sm w-full" dir="auto" x-model="c.front">
+                      <div class="text-xs opacity-60" x-show="was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)" x-text="'in Anki: ' + was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)"></div>
+                      <div class="text-xs opacity-60" x-show="before(i, 'front')" x-text="'before: ' + before(i, 'front')"></div></label>
+                    <label><span class="text-xs opacity-70">Translation</span><input class="input input-sm w-full" dir="auto" x-model="c.translation">
+                      <div class="text-xs opacity-60" x-show="was(i, 'Translation', c.translation)" x-text="'in Anki: ' + was(i, 'Translation', c.translation)"></div>
+                      <div class="text-xs opacity-60" x-show="before(i, 'translation')" x-text="'before: ' + before(i, 'translation')"></div></label>
+                    <label class="md:col-span-2"><span class="text-xs opacity-70">Notes</span><textarea class="textarea textarea-sm w-full min-h-0" dir="auto" x-model="c.notes" rows="2"></textarea>
+                      <div class="text-xs opacity-60" x-show="before(i, 'notes')" x-text="'before: ' + before(i, 'notes')"></div></label>
+                    <div class="md:col-span-2 text-xs opacity-60" x-show="c.production_reason" x-text="'Direction: ' + c.production_reason"></div>
+                    <div class="md:col-span-2 flex flex-col gap-2" x-show="c.kind === 'sentence'">
+                      <div class="flex flex-wrap gap-2 items-center">
+                        <span class="text-xs opacity-70">Drill</span>
+                        <div class="join">
+                          <button class="btn btn-xs join-item" :class="{ 'btn-active': !c.cloze }" @click="setMode(i, null)" title="Whole sentence: recognition (and production) card">translate</button>
+                          <button class="btn btn-xs join-item" :class="{ 'btn-active': c.cloze?.mode === 'focus' }" @click="setMode(i, 'focus')" title="One card blanking the word the sentence illustrates">focus</button>
+                          <button class="btn btn-xs join-item" :class="{ 'btn-active': c.cloze?.mode === 'build' }" @click="setMode(i, 'build')" title="Cards blanking the last 1, 2, … chunks, up to the whole sentence">build</button>
+                        </div>
+                        <span class="loading loading-spinner loading-xs" x-show="rechunking[i]"></span>
+                        <button class="btn btn-xs btn-ghost" x-show="c.cloze && !rechunking[i]" @click="rechunk(i)" title="Let Claude split the sentence again">re-chunk</button>
+                        <template x-if="c.cloze?.mode === 'focus'">
+                          <input class="input input-xs w-40" dir="auto" placeholder="hint" title="Shown in the blank" x-model="c.cloze.hint">
+                        </template>
+                      </div>
+                      <template x-if="c.cloze?.chunks.length && !rechunking[i]">
+                        <div class="flex flex-wrap items-center gap-0.5" dir="auto">
+                          <template x-for="(ch, j) in c.cloze.chunks" :key="j">
+                            <span class="contents">
+                              <button class="badge whitespace-pre cursor-pointer" :class="c.cloze.focus.includes(j) ? 'badge-primary' : 'badge-ghost'"
+                                      :title="(c.cloze.mode === 'focus' ? 'click: blank or unblank, ' : '') + 'shift-click: split'"
+                                      @click="$event.shiftKey ? splitChunk(c, j) : c.cloze.mode === 'focus' && toggleFocus(c, j)" x-text="ch"></button>
+                              <button class="btn btn-ghost btn-xs px-1 opacity-50" x-show="j < c.cloze.chunks.length - 1" @click="mergeChunks(c, j)" title="merge">+</button>
+                            </span>
+                          </template>
+                        </div>
+                      </template>
+                      <template x-if="c.cloze && !rechunking[i]">
+                        <div>
+                          <div class="text-sm text-warning" x-show="clozeProblems(c).length" x-text="'⚠ ' + clozeProblems(c).join('; ')"></div>
+                          <ol class="text-sm opacity-70 list-decimal list-inside" dir="auto" x-show="!clozeProblems(c).length">
+                            <template x-for="p in clozePreview(c)"><li x-text="p"></li></template>
+                          </ol>
+                        </div>
+                      </template>
+                    </div>
                     <template x-for="f in cardFlags(i)">
-                      <div class="card-flag">⚠ <span x-text="f.message"></span>
+                      <div class="md:col-span-2 text-sm text-warning">⚠ <span x-text="f.message"></span>
                         <template x-if="f.suggestion !== null && f.field && c[f.field] !== f.suggestion">
-                          <button @click="applyFlag(f)" x-text="`use “${f.suggestion}”`"></button>
+                          <button class="btn btn-xs" @click="applyFlag(f)" x-text="`use “${f.suggestion}”`"></button>
                         </template>
                       </div>
                     </template>
@@ -254,24 +215,26 @@
   </main>
 </div>
 
-<dialog x-ref="settings">
-  <h3>Settings</h3>
-  <div class="row"><label class="f">Main deck (all language decks go under it; empty = top level)</label>
-    <input x-model="settings.deck_root"></div>
-  <div class="row"><label class="f">Claude model</label>
-    <select x-model="settings.model"><option>sonnet</option><option>opus</option><option>haiku</option></select></div>
-  <div class="row"><label class="f">OCR device</label>
-    <select x-model="settings.ocr_device"><option value="gpu">GPU (NVIDIA)</option><option value="cpu">CPU</option></select></div>
-  <div class="row"><label class="f">AnkiConnect URL</label><input x-model="settings.anki_url"></div>
-  <div class="row"><label class="f">Data folder (pages and settings). Your data is moved there on save; if it already holds app data, that is used instead.</label>
-    <input x-model="dataDir"></div>
-  <div class="row">
-    <button @click="installNoteTypes()">Install / update note types</button>
-    <span class="pill" :class="anki.ok ? 'ok' : 'err'" x-text="anki.ok ? (anki.note_types_installed ? 'installed' : 'not installed') : anki.error"></span>
+<dialog class="modal" x-ref="settings">
+  <div class="modal-box flex flex-col gap-3">
+    <h3 class="text-lg font-semibold">Settings</h3>
+    <label><span class="text-xs opacity-70">Main deck (all language decks go under it; empty = top level)</span>
+      <input class="input input-sm w-full" x-model="settings.deck_root"></label>
+    <label><span class="text-xs opacity-70">Claude model</span>
+      <select class="select select-sm w-full" x-model="settings.model"><option>sonnet</option><option>opus</option><option>haiku</option></select></label>
+    <label><span class="text-xs opacity-70">OCR device</span>
+      <select class="select select-sm w-full" x-model="settings.ocr_device"><option value="gpu">GPU (NVIDIA)</option><option value="cpu">CPU</option></select></label>
+    <label><span class="text-xs opacity-70">AnkiConnect URL</span><input class="input input-sm w-full" x-model="settings.anki_url"></label>
+    <label><span class="text-xs opacity-70">Data folder (pages and settings). Your data is moved there on save; if it already holds app data, that is used instead.</span>
+      <input class="input input-sm w-full" x-model="dataDir"></label>
+    <div class="flex gap-2 items-center">
+      <button class="btn btn-sm" @click="installNoteTypes()">Install / update note types</button>
+      <span class="text-sm" :class="anki.ok ? 'text-success' : 'text-error'" x-text="anki.ok ? (anki.note_types_installed ? 'installed' : 'not installed') : anki.error"></span>
+    </div>
+    <div class="modal-action mt-2">
+      <button class="btn btn-sm" @click="$refs.settings.close()">Cancel</button>
+      <button class="btn btn-sm btn-primary" @click="saveSettings()">Save</button></div>
   </div>
-  <div class="toolbar"><span style="margin-left: auto"></span>
-    <button @click="$refs.settings.close()">Cancel</button>
-    <button class="primary" @click="saveSettings()">Save</button></div>
 </dialog>
 
 <script>
@@ -279,6 +242,7 @@ function app() {
   return {
     pages: [], selectedId: null, detail: null, log: [], source: null,
     anki: { ok: false }, settings: {}, dataDir: '', demosOpen: true, dragging: false, busy: false, showBoxes: true, showUnchanged: false,
+    rechunking: {},
 
     async init() {
       this.refreshAnki();
@@ -325,6 +289,7 @@ function app() {
       this.selectedId = id;
       history.replaceState(null, '', `#${id}`);
       this.detail = await this.api(`/pages/${id}`);
+      this.rechunking = {};
       if (keepLog) return;
       this.log = [];
       if (this.source) this.source.close();
@@ -340,7 +305,7 @@ function app() {
       if (e.type === 'done') return `✓ done in ${e.turns} turns` + (e.cost_usd ? ` (~$${e.cost_usd.toFixed(3)} API-equivalent)` : '');
       return e.text;
     },
-    statusClass(s) { return { ready: 'warn', committed: 'ok', error: 'err' }[s] || ''; },
+    statusClass(s) { return { ready: 'badge-warning', committed: 'badge-success', error: 'badge-error' }[s] || ''; },
     file(name) { return `/pages/${this.selectedId}/files/${name}`; },
     reviewing() { return this.detail.proposal && ['ready', 'committed'].includes(this.detail.meta.status); },
     // the annotated page shows the box ids the sketch picker refers to; it only exists once processed
@@ -367,12 +332,79 @@ function app() {
       if (!this.detail.previous) return '';
       const old = this.detail.previous[i], c = this.detail.proposal.cards[i];
       if (!old) return 'new on page';
-      return ['front', 'translation', 'notes', 'production'].some(f => old[f] !== c[f]) ? 'changed' : 'unchanged';
+      return ['front', 'translation', 'notes', 'production', 'cloze'].some(f => JSON.stringify(old[f] ?? null) !== JSON.stringify(c[f] ?? null)) ? 'changed' : 'unchanged';
     },
     unchangedCount() { return this.detail.proposal.cards.filter((_, i) => this.versionStatus(i) === 'unchanged').length; },
     before(i, field) {
       const old = this.detail.previous?.[i]?.[field];
       return old !== undefined && old !== this.detail.proposal.cards[i][field] ? old : '';
+    },
+    // cloze: Claude splits the sentence; the learner can merge, split and pick the blanked chunks
+    async setMode(i, mode) {
+      const c = this.detail.proposal.cards[i];
+      if ((c.cloze?.mode ?? null) === mode) return;
+      // focus and build cut a sentence differently, so a new mode gets new chunks
+      c.cloze = mode && { mode, chunks: [], focus: [], hint: '' };
+      if (mode) await this.rechunk(i);
+    },
+    async rechunk(i) {
+      const c = this.detail.proposal.cards[i];
+      this.rechunking[i] = true;
+      try {
+        c.cloze = await this.api(`/pages/${this.selectedId}/cloze`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: c.cloze.mode, card: c }),
+        });
+      } catch (e) { alert(e.message); }
+      this.rechunking[i] = false;
+    },
+    toggleFocus(c, j) {
+      const f = c.cloze.focus;
+      c.cloze.focus = f.includes(j) ? f.filter(x => x !== j) : [...f, j].sort((a, b) => a - b);
+    },
+    mergeChunks(c, j) {
+      const z = c.cloze, focused = z.focus.includes(j) || z.focus.includes(j + 1);
+      z.chunks.splice(j, 2, z.chunks[j] + z.chunks[j + 1]);
+      z.focus = z.focus.filter(x => x !== j && x !== j + 1).map(x => x > j ? x - 1 : x);
+      if (focused) z.focus = [...z.focus, j].sort((a, b) => a - b);
+    },
+    splitChunk(c, j) {
+      const z = c.cloze, parts = (prompt('Mark where to split with |', z.chunks[j]) || '').split('|');
+      if (parts.length < 2 || parts.join('') !== z.chunks[j] || parts.some(p => !p.trim())) return;
+      z.chunks.splice(j, 1, ...parts);
+      const n = parts.length - 1;
+      z.focus = z.focus.flatMap(x => x < j ? [x] : x > j ? [x + n] : parts.map((_, k) => j + k));
+    },
+    // mirrors Cloze.problems in models.py
+    clozeProblems(c) {
+      const z = c.cloze;
+      if (!z) return [];
+      if (!z.chunks.length) return ['no chunks yet: re-chunk'];
+      const out = [];
+      if (z.chunks.join('') !== c.front) out.push('sentence was edited: re-chunk');
+      if ([...z.chunks, z.hint].some(t => ['{{', '}}', '::'].some(s => t.includes(s)))) out.push('no {{, }} or :: allowed');
+      if (z.mode === 'build' && z.chunks.length < 2) out.push('build needs at least 2 chunks');
+      if (z.mode === 'focus' && !z.focus.length) out.push('pick the chunk(s) to blank');
+      if (z.mode === 'focus' && z.focus.length === z.chunks.length) out.push('leave some of the sentence visible');
+      return out;
+    },
+    invalidCount() { return this.detail.proposal.cards.filter(c => c.include && this.clozeProblems(c).length).length; },
+    // the card fronts as Anki will show them
+    clozePreview(c) {
+      const z = c.cloze, n = z.chunks.length;
+      // whitespace around a blank stays, as in anki._cloze
+      const blank = (t, hint = '') => t.replace(/\S(.*\S)?/s, `[${hint || '…'}]`);
+      if (z.mode === 'build') {
+        return z.chunks.map((_, k) => z.chunks.slice(0, n - k - 1).join('') + blank(z.chunks.slice(n - k - 1).join('')));
+      }
+      // adjacent blanked chunks make one blank, the first one shows the hint (as in anki.render_cloze)
+      let out = '', run = '', hint = z.hint;
+      z.chunks.forEach((ch, j) => {
+        if (z.focus.includes(j)) { run += ch; return; }
+        if (run) { out += blank(run, hint); run = ''; hint = ''; }
+        out += ch;
+      });
+      if (run) out += blank(run, hint);
+      return [out];
     },
     async keepDropped(c) {
       // its sketch box id belongs to the old photo
@@ -384,7 +416,7 @@ function app() {
     },
     commitSummary() {
       const n = (a) => (this.detail.commit || []).filter(r => r.action === a).length;
-      return `${n('added')} added, ${n('updated')} updated, ${n('error')} errors`;
+      return `${n('added')} added, ${n('updated')} updated, ${n('suspended')} suspended, ${n('error')} errors`;
     },
     async rerun() {
       await this.api(`/pages/${this.selectedId}/rerun`, { method: 'POST' });

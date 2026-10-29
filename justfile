@@ -10,7 +10,7 @@ run:
 
 # the server with auto-reload on :8642
 dev:
-    uv run --project {{dir}} uvicorn notebook_anki.server:app --reload --port {{port}} --app-dir {{dir}}
+    uv run --project {{dir}} uvicorn notebook_anki.server:app --reload --timeout-graceful-shutdown 2 --port {{port}} --app-dir {{dir}}
 
 # install as desktop app (Fedora/Ubuntu, GNOME); restarts the server if running
 reinstall:

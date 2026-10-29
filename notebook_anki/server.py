@@ -9,6 +9,7 @@ import time
 import webbrowser
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from typing import Literal
 
 import cv2
 import uvicorn
@@ -18,7 +19,7 @@ from pydantic import BaseModel
 
 from . import agent, anki, ocr
 from .extract import extract
-from .models import PageProposal, note_key
+from .models import Card, Cloze, PageProposal, note_key
 
 ROOT = Path(__file__).parent.parent
 # where the data folder is, if not the default; settings.json lives in the data folder itself
@@ -135,7 +136,7 @@ async def process(page_id: str):
 
 
 # fields the learner may have edited in the review; carried over to the next version
-EDITABLE = ("front", "translation", "notes", "production")
+EDITABLE = ("front", "translation", "notes", "production", "cloze")
 
 
 def merge_previous(d: Path, previous: Path) -> None:
@@ -332,12 +333,17 @@ def get_page(page_id: str):
         proposal = PageProposal.model_validate_json((d / "proposal.json").read_text())
         result["proposal"] = proposal.model_dump()
         keys = [note_key(proposal.target_lang, c) for c in proposal.cards]
+        # a focus card has no sentence note of its own; its cloze note stands in
+        anki_keys = [
+            note_key(proposal.target_lang, c, "focus") if c.cloze and c.cloze.mode == "focus" else k
+            for c, k in zip(proposal.cards, keys)
+        ]
         result["existing"] = [None] * len(keys)
         try:
             load_settings()
-            found = anki.find_existing(keys)
+            found = anki.find_existing(anki_keys)
             # existing note per card, in card order
-            result["existing"] = [found.get(k) for k in keys]
+            result["existing"] = [found.get(k) for k in anki_keys]
         except anki.AnkiError as e:
             result["anki_error"] = str(e)
     if (d / "commit.json").exists():
@@ -346,7 +352,7 @@ def get_page(page_id: str):
     if result["proposal"] and previous and (d / previous).exists():
         old = PageProposal.model_validate_json((d / previous).read_text())
         old_commit = (d / previous).parent / "commit.json"
-        committed = {r["key"] for r in json.loads(old_commit.read_text()) if r["action"] != "error"} if old_commit.exists() else set()
+        committed = {r.get("card", r["key"]) for r in json.loads(old_commit.read_text()) if r["action"] != "error"} if old_commit.exists() else set()
         before = {note_key(old.target_lang, c): c for c in old.cards}
         # previous card per card, in card order (None: new on this version)
         result["previous"] = [before[k].model_dump() if k in before else None for k in keys]
@@ -360,6 +366,22 @@ def get_page(page_id: str):
 def save_page(page_id: str, proposal: PageProposal):
     (page_dir(page_id) / "proposal.json").write_text(proposal.model_dump_json(indent=2))
     return get_page(page_id)
+
+
+class ClozeRequest(BaseModel):
+    mode: Literal["focus", "build"]
+    card: Card
+
+
+@app.post("/pages/{page_id}/cloze")
+async def make_cloze(page_id: str, body: ClozeRequest) -> Cloze:
+    """Chunks for one sentence card as currently edited; the UI saves them with the proposal."""
+    proposal = PageProposal.model_validate_json((page_dir(page_id) / "proposal.json").read_text())
+    related = next((c for c in proposal.cards if c.kind == "vocab" and c.key == body.card.related_key), None)
+    try:
+        return await agent.rechunk(body.card, body.mode, proposal.target_lang, proposal.native_lang, related)
+    except Exception as e:
+        raise HTTPException(502, str(e))
 
 
 @app.post("/pages/{page_id}/commit")

@@ -35,3 +35,9 @@
   text-align: left;
   white-space: pre-line;
 }
+.cloze {
+  color: #2f6fdb;
+}
+.nightMode .cloze, .night_mode .cloze {
+  color: #6c9cf0;
+}
