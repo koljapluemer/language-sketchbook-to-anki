@@ -12,9 +12,9 @@
 <body class="bg-base-200 min-h-screen text-[15px]" x-data="app()" x-init="init()">
 
 <header class="navbar bg-base-100 border-b border-base-300 gap-3 px-4 min-h-0 py-2">
-  <h1 class="text-lg font-semibold mr-auto">Language Sketchbook → Anki</h1>
-  <span class="badge badge-soft" :class="anki.ok ? 'badge-success' : 'badge-error'"
-        x-text="anki.ok ? `Anki: ${anki.profile}` + (anki.note_types_installed ? '' : ' (note types missing)') : 'Anki not reachable'"></span>
+  <h1 class="text-lg font-semibold mr-auto">Language Sketchbook</h1>
+  <span class="badge badge-soft" :class="backend.ok ? 'badge-success' : 'badge-error'" :title="backend.error || ''"
+        x-text="backend.ok ? backend.label : isDsl() ? 'DSL folder missing' : 'Anki not reachable'"></span>
   <button class="btn btn-sm" @click="openSettings()">Settings</button>
 </header>
 
@@ -92,21 +92,22 @@
         <!-- review -->
         <template x-if="reviewing()">
           <div>
-            <div role="alert" class="alert alert-soft mb-4" x-show="detail.meta.demo">Demo page: an example notebook page, already processed. Edit and explore freely; “Add to Anki” creates real cards.</div>
+            <div role="alert" class="alert alert-soft mb-4" x-show="detail.meta.demo">Demo page: an example notebook page, already processed. Edit and explore freely; <span x-text="`“${commitLabel()}”`"></span> creates real cards.</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <label><span class="text-xs opacity-70">Target language</span><input class="input input-sm w-full" x-model="detail.proposal.target_lang" @change="save()"></label>
               <label><span class="text-xs opacity-70">Native language</span><input class="input input-sm w-full" x-model="detail.proposal.native_lang" @change="save()"></label>
               <label><span class="text-xs opacity-70">Title: page name and deck <span x-text="detail.proposal.topic_source === 'generated' ? '(made up)' : '(from page)'"></span></span>
                 <input class="input input-sm w-full" x-model="detail.proposal.topic" @change="save()"></label>
             </div>
-            <div class="opacity-70 mt-2 mb-4">Deck: <b x-text="deckName()"></b></div>
-            <p x-show="detail.anki_error" class="text-error mb-3" x-text="detail.anki_error"></p>
+            <div class="opacity-70 mt-2 mb-4" x-show="!isDsl()">Deck: <b x-text="deckName()"></b></div>
+            <div class="opacity-70 mt-2 mb-4" x-show="isDsl()">Note: <b x-text="detail.meta.dsl_note || 'new, named after the title'"></b></div>
+            <p x-show="detail.backend_error" class="text-error mb-3" x-text="detail.backend_error"></p>
 
             <div class="card card-border bg-base-100 px-3 py-2 mb-4" x-show="detail.dropped?.length">
-              <div><b>No longer on the page</b> <span class="text-xs opacity-60">(nothing is removed from Anki)</span></div>
+              <div><b>No longer on the page</b> <span class="text-xs opacity-60" x-text="isDsl() ? '(removed from the note on the next commit)' : '(nothing is removed from Anki)'"></span></div>
               <template x-for="c in detail.dropped || []">
                 <div class="flex gap-2 items-baseline py-1"><span x-text="`${c.front} – ${c.translation}`"></span>
-                  <span class="badge badge-sm badge-soft" x-show="c.committed">in Anki</span>
+                  <span class="badge badge-sm badge-soft" x-show="c.committed">committed</span>
                   <button class="btn btn-xs" @click="keepDropped(c)">Keep</button></div>
               </template>
             </div>
@@ -127,7 +128,7 @@
               <input type="file" x-ref="photo" accept="image/*" hidden @change="updatePhoto($event.target.files[0]); $event.target.value = ''">
               <button class="btn btn-sm" @click="rerun()">Re-run</button>
               <span class="text-sm text-warning" x-show="invalidCount()" x-text="`${invalidCount()} cloze card(s) to fix`"></span>
-              <button class="btn btn-sm btn-primary" :disabled="busy || !anki.ok || invalidCount() > 0" :title="!anki.ok ? 'Anki is not reachable' : invalidCount() > 0 ? 'Fix the cloze cards marked ⚠ first' : ''" @click="commit()" x-text="busy ? 'Saving…' : 'Add to Anki'"></button>
+              <button class="btn btn-sm btn-primary" :disabled="busy || !backend.ok || invalidCount() > 0" :title="!backend.ok ? (backend.error || 'Anki is not reachable') : invalidCount() > 0 ? 'Fix the cloze cards marked ⚠ first' : ''" @click="commit()" x-text="busy ? 'Saving…' : commitLabel()"></button>
             </div>
 
             <div class="mb-4" x-show="detail.commit">
@@ -142,7 +143,7 @@
                   <div class="flex flex-col gap-2 items-start">
                     <label class="flex gap-2 items-center"><input type="checkbox" class="checkbox checkbox-sm" x-model="c.include"> include</label>
                     <span class="badge badge-sm badge-soft" x-text="c.kind + (c.source === 'generated' ? ' · generated' : '')"></span>
-                    <span class="badge badge-sm badge-soft" :class="detail.existing[i] ? 'badge-warning' : 'badge-success'" x-text="detail.existing[i] ? 'update' : 'new'"></span>
+                    <span class="badge badge-sm badge-soft" :class="detail.existing[i] ? 'badge-warning' : 'badge-success'" :title="detail.existing[i]?.where || ''" x-text="existingBadge(i)"></span>
                     <span class="badge badge-sm badge-soft" x-show="versionStatus(i)" :class="{ 'badge-success': versionStatus(i) === 'new on page', 'badge-warning': versionStatus(i) === 'changed' }" x-text="versionStatus(i)"></span>
                     <img class="max-w-[120px] max-h-[120px] bg-white rounded invert-90" x-show="c.image" :src="c.image ? file(c.image + '.png') : ''">
                     <select class="select select-sm w-full" x-model="c.image" @change="if (c.image === '') c.image = null">
@@ -153,10 +154,10 @@
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-2 content-start">
                     <label><span class="text-xs opacity-70">Front</span><input class="input input-sm w-full" dir="auto" x-model="c.front">
-                      <div class="text-xs opacity-60" x-show="was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)" x-text="'in Anki: ' + was(i, c.kind === 'vocab' ? 'Term' : 'Sentence', c.front)"></div>
+                      <div class="text-xs opacity-60" x-show="was(i, 'front', c.front)" x-text="'existing: ' + was(i, 'front', c.front)"></div>
                       <div class="text-xs opacity-60" x-show="before(i, 'front')" x-text="'before: ' + before(i, 'front')"></div></label>
                     <label><span class="text-xs opacity-70">Translation</span><input class="input input-sm w-full" dir="auto" x-model="c.translation">
-                      <div class="text-xs opacity-60" x-show="was(i, 'Translation', c.translation)" x-text="'in Anki: ' + was(i, 'Translation', c.translation)"></div>
+                      <div class="text-xs opacity-60" x-show="was(i, 'translation', c.translation)" x-text="'existing: ' + was(i, 'translation', c.translation)"></div>
                       <div class="text-xs opacity-60" x-show="before(i, 'translation')" x-text="'before: ' + before(i, 'translation')"></div></label>
                     <label class="md:col-span-2"><span class="text-xs opacity-70">Notes</span><textarea class="textarea textarea-sm w-full min-h-0" dir="auto" x-model="c.notes" rows="2"></textarea>
                       <div class="text-xs opacity-60" x-show="before(i, 'notes')" x-text="'before: ' + before(i, 'notes')"></div></label>
@@ -218,18 +219,22 @@
 <dialog class="modal" x-ref="settings">
   <div class="modal-box flex flex-col gap-3">
     <h3 class="text-lg font-semibold">Settings</h3>
-    <label><span class="text-xs opacity-70">Main deck (all language decks go under it; empty = top level)</span>
+    <label><span class="text-xs opacity-70">Cards go to</span>
+      <select class="select select-sm w-full" x-model="settings.backend"><option value="anki">Anki</option><option value="dsl">DSL (one note per page)</option></select></label>
+    <label x-show="settings.backend === 'dsl'"><span class="text-xs opacity-70">DSL data folder (the notes' folder; images go to its images/)</span>
+      <input class="input input-sm w-full" x-model="settings.dsl_dir" placeholder="/path/to/notes"></label>
+    <label x-show="settings.backend !== 'dsl'"><span class="text-xs opacity-70">Main deck (all language decks go under it; empty = top level)</span>
       <input class="input input-sm w-full" x-model="settings.deck_root"></label>
     <label><span class="text-xs opacity-70">Claude model</span>
       <select class="select select-sm w-full" x-model="settings.model"><option>sonnet</option><option>opus</option><option>haiku</option></select></label>
     <label><span class="text-xs opacity-70">OCR device</span>
       <select class="select select-sm w-full" x-model="settings.ocr_device"><option value="gpu">GPU (NVIDIA)</option><option value="cpu">CPU</option></select></label>
-    <label><span class="text-xs opacity-70">AnkiConnect URL</span><input class="input input-sm w-full" x-model="settings.anki_url"></label>
+    <label x-show="settings.backend !== 'dsl'"><span class="text-xs opacity-70">AnkiConnect URL</span><input class="input input-sm w-full" x-model="settings.anki_url"></label>
     <label><span class="text-xs opacity-70">Data folder (pages and settings). Your data is moved there on save; if it already holds app data, that is used instead.</span>
       <input class="input input-sm w-full" x-model="dataDir"></label>
-    <div class="flex gap-2 items-center">
+    <div class="flex gap-2 items-center" x-show="settings.backend !== 'dsl' && !isDsl()">
       <button class="btn btn-sm" @click="installNoteTypes()">Install / update note types</button>
-      <span class="text-sm" :class="anki.ok ? 'text-success' : 'text-error'" x-text="anki.ok ? (anki.note_types_installed ? 'installed' : 'not installed') : anki.error"></span>
+      <span class="text-sm" :class="backend.ok ? 'text-success' : 'text-error'" x-text="backend.ok ? (backend.note_types_installed ? 'installed' : 'not installed') : backend.error"></span>
     </div>
     <div class="modal-action mt-2">
       <button class="btn btn-sm" @click="$refs.settings.close()">Cancel</button>
@@ -241,11 +246,11 @@
 function app() {
   return {
     pages: [], selectedId: null, detail: null, log: [], source: null,
-    anki: { ok: false }, settings: {}, dataDir: '', demosOpen: true, dragging: false, busy: false, showBoxes: true, showUnchanged: false,
+    backend: { ok: false }, settings: {}, dataDir: '', demosOpen: true, dragging: false, busy: false, showBoxes: true, showUnchanged: false,
     rechunking: {},
 
     async init() {
-      this.refreshAnki();
+      this.refreshBackend();
       this.settings = await this.api('/settings');
       await this.loadPages();
       const fromHash = location.hash.slice(1);
@@ -254,14 +259,22 @@ function app() {
         this.select(fromHash);
       }
       setInterval(() => this.loadPages(), 3000);
-      setInterval(() => this.refreshAnki(), 10000);
+      setInterval(() => this.refreshBackend(), 10000);
     },
     async api(path, opts = {}) {
       const r = await fetch(path, opts);
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
       return r.json();
     },
-    async refreshAnki() { this.anki = await this.api('/anki/status'); },
+    async refreshBackend() { this.backend = await this.api('/backend/status'); },
+    isDsl() { return this.backend.backend === 'dsl'; },
+    commitLabel() { return this.isDsl() ? 'Write to DSL' : 'Add to Anki'; },
+    existingBadge(i) {
+      const e = this.detail.existing[i];
+      if (!e) return 'new';
+      // in DSL, a card on another page isn't updated: it's added to this page's note too
+      return !this.isDsl() || e.page === this.detail.meta.id ? 'update' : `also in ${e.where}`;
+    },
     async loadPages() {
       const hadOwn = this.ownPages().length;
       this.pages = await this.api('/pages');
@@ -323,7 +336,7 @@ function app() {
       this.detail.proposal.flags = this.detail.proposal.flags.filter(x => x !== f);
     },
     was(i, field, current) {
-      const old = this.detail.existing[i]?.fields?.[field];
+      const old = this.detail.existing[i]?.[field];
       return old !== undefined && old !== current ? old : '';
     },
     setAll(v) { this.detail.proposal.cards.forEach(c => c.include = v); },
@@ -388,11 +401,12 @@ function app() {
       return out;
     },
     invalidCount() { return this.detail.proposal.cards.filter(c => c.include && this.clozeProblems(c).length).length; },
-    // the card fronts as Anki will show them
+    // the card fronts as Anki or DSL will show them
     clozePreview(c) {
       const z = c.cloze, n = z.chunks.length;
-      // whitespace around a blank stays, as in anki._cloze
-      const blank = (t, hint = '') => t.replace(/\S(.*\S)?/s, `[${hint || '…'}]`);
+      // whitespace around a blank stays, as in anki._cloze and dsl._mark
+      const mark = (hint) => this.isDsl() ? '___' + (hint ? ` (${hint})` : '') : `[${hint || '…'}]`;
+      const blank = (t, hint = '') => t.replace(/\S(.*\S)?/s, mark(hint));
       if (z.mode === 'build') {
         return z.chunks.map((_, k) => z.chunks.slice(0, n - k - 1).join('') + blank(z.chunks.slice(n - k - 1).join('')));
       }
@@ -411,7 +425,7 @@ function app() {
       const { committed, ...card } = c;
       this.detail.proposal.cards.push({ ...card, image: null });
       await this.save();
-      // the server lines the kept card up with Anki and the previous version again
+      // the server lines the kept card up with existing cards and the previous version again
       this.select(this.selectedId, true);
     },
     commitSummary() {
@@ -471,11 +485,11 @@ function app() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.settings),
       });
       this.$refs.settings.close();
-      this.refreshAnki();
+      this.refreshBackend();
       this.loadPages();
     },
     async installNoteTypes() {
-      try { this.anki = await this.api('/anki/install', { method: 'POST' }); } catch (e) { alert(e.message); }
+      try { this.backend = await this.api('/anki/install', { method: 'POST' }); } catch (e) { alert(e.message); }
     },
   };
 }

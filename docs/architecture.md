@@ -30,7 +30,7 @@ The system prompt is `notebook_anki/prompt.md`. The agent gets the page and the 
 
 - `ocr`: PaddleOCR on the page or a region, with sketch boxes masked out
 - `layout_hints`: nearest text lines per sketch and a one-to-one assignment (Hungarian algorithm)
-- `anki_lookup`: existing notes for the proposed cards
+- `lookup`: existing cards for the proposed ones, in Anki or in earlier DSL commits
 - `submit_proposal`: validates the proposal (every box labelled, each sketch used at most once, …) and returns errors for the agent to fix
 
 It may also use web search for grammar facts. Doubts go into `flags`, which the UI shows with an optional suggested replacement.
@@ -57,9 +57,37 @@ The sentence's `chunks` come from Claude, since where words begin and end (infle
 
 Notes are identified by the `Key` field: `language|kind|normalized key`. A card whose key already exists updates that note's fields and leaves its deck alone; new notes go into `<deck root>::<language>::<topic>`. All notes are tagged `nb` and `nb::<language>::<topic>`, generated content additionally `generated`.
 
+## DSL
+
+With *Cards go to: DSL* in the settings, a commit writes the page as one note, a `.txt` file straight into the DSL data folder (`dsl.py`; DSL needn't be running). The note is named like DSL names new notes (`<slug of the title>-<hex>.txt`) on the first commit and kept in `meta.json` (`dsl_note`), so every later commit, also of a later version of the page, overwrites it.
+
+```
+Kitchen Nouns
+
+::
+**la ricetta**
+---
+recipe
+![[kitchen-nouns-8dc468-B3.webp]]
+::
+
+media images/kitchen-nouns-8dc468-page.webp
+media images/kitchen-nouns-8dc468-B3.webp
+tags sketchbook italian
+data
+sketchbook: <page id>
+language: Italian
+```
+
+- The cards are DSL flashcard blocks laid out like the Anki templates: recognition (`**front**` / translation, sketch, notes), production (sketch, translation / `**front**`, notes). A focus cloze is one card with the run as `___ (hint)` and in bold on the back; a build cloze is the recognition card plus card k with the last k chunks as one `___`.
+- Learner text is Markdown-escaped (`dsl.md`). A line that would end the note's body or the card (a DSL keyword, `->`, `(`, `::`, `---` at its start) is indented by one space (`dsl.guard`, keywords as of DSL language v13).
+- Images go to `images/` in the DSL folder: the page photo (WebP, at most 1920 px) first, so it's the note's cover, then the sketches the cards use, inverted for DSL's dark theme (lossless WebP, transparency kept). Images an earlier commit wrote that the note no longer uses are deleted (`dsl_files` in `meta.json`).
+- DSL keeps a reviewed card's state in `files/flashcards/` and names it in a `media` line of the note; those lines are kept on overwrite. A card is the same card while its front is unchanged; a changed front starts over. Cards with the same front in one note are one card in DSL (e.g. two sentences with the same translation as production fronts).
+- `lookup` (the agent's tool, and the "existing" hints in review) reads the cards of each page's latest `commit.json`. A card already on another page is written to this page's note too.
+
 ## Settings
 
-Stored in `<data folder>/settings.json`, editable in the UI: Claude model, OCR device, AnkiConnect URL, deck root.
+Stored in `<data folder>/settings.json`, editable in the UI: Claude model, OCR device, where cards go (Anki or DSL), AnkiConnect URL and deck root, DSL folder.
 
 The data folder is `data/` in the repo unless set otherwise under *Settings*; that choice is kept in `~/.config/language-sketchbook/config.json`. Changing it moves your pages and settings to the new folder, or, if the new folder already holds app data, switches to it.
 

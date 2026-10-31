@@ -61,8 +61,10 @@ def _error(msg: str) -> dict:
 
 
 class Job:
-    def __init__(self, page_dir: Path, page_file: str, previous: Path | None = None):
+    def __init__(self, page_dir: Path, page_file: str, previous: Path | None = None,
+                 lookup: Callable[[list[str]], dict] = anki.lookup):
         self.dir = page_dir
+        self.lookup = lookup
         self.page_file = page_file
         # the reviewed proposal of the page's previous version, when this is an updated photo
         self.previous = PageProposal.model_validate_json(previous.read_text()) if previous else None
@@ -125,8 +127,8 @@ class Job:
             return _text({"nearest": hints, "assignment": suggestion})
 
         @tool(
-            "anki_lookup",
-            "Find existing Anki notes for these cards (matched by language + kind + normalized key).",
+            "lookup",
+            "Find existing cards for these (matched by language + kind + normalized key).",
             {
                 "type": "object",
                 "properties": {
@@ -143,16 +145,16 @@ class Job:
                 "required": ["target_lang", "cards"],
             },
         )
-        async def anki_lookup(args):
+        async def lookup(args):
             keys = [
                 note_key(args["target_lang"], Card(kind=c["kind"], key=c["key"], front="", translation="", production=False))
                 for c in args["cards"]
             ]
             try:
-                found = await asyncio.to_thread(anki.find_existing, keys)
-            except anki.AnkiError as e:
+                found = await asyncio.to_thread(self.lookup, keys)
+            except Exception as e:
                 return _error(str(e))
-            return _text({k: {"deck": v["deck"], "fields": v["fields"]} for k, v in found.items()} or "No existing notes.")
+            return _text(found or "No existing cards.")
 
         @tool("submit_proposal", "Submit the final card proposal for review.", _inline_refs(PageProposal.model_json_schema()))
         async def submit_proposal(args):
@@ -195,7 +197,7 @@ class Job:
                 (self.dir / name).write_text(proposal.model_dump_json(indent=2))
             return _text(f"Saved: {len(proposal.cards)} cards for deck {proposal.deck()}.")
 
-        return [ocr_tool, layout_hints, anki_lookup, submit_proposal]
+        return [ocr_tool, layout_hints, lookup, submit_proposal]
 
 
 async def rechunk(card: Card, mode: str, target_lang: str, native_lang: str, related: Card | None = None,
@@ -248,10 +250,10 @@ def _preview(src: Path, dst: Path, max_side: int = 1568) -> float:
 
 
 async def run(page_dir: Path, page_file: str, model: str = "sonnet", on_event: Callable[[dict], None] = print,
-              previous: Path | None = None) -> PageProposal:
-    job = Job(page_dir, page_file, previous)
+              previous: Path | None = None, lookup: Callable[[list[str]], dict] = anki.lookup) -> PageProposal:
+    job = Job(page_dir, page_file, previous, lookup)
     server = create_sdk_mcp_server(SERVER, tools=job.tools())
-    tool_names = [f"mcp__{SERVER}__{t}" for t in ("ocr", "layout_hints", "anki_lookup", "submit_proposal")]
+    tool_names = [f"mcp__{SERVER}__{t}" for t in ("ocr", "layout_hints", "lookup", "submit_proposal")]
     h, w = job.img.shape[:2]
     scale = _preview(page_dir / page_file, page_dir / "claude_page.jpg")
     _preview(page_dir / "annotated.png", page_dir / "claude_annotated.jpg")

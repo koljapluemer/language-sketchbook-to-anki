@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import agent, anki, ocr
+from . import agent, anki, dsl, ocr
 from .extract import extract
 from .models import Card, Cloze, PageProposal, note_key
 
@@ -71,6 +71,9 @@ class Settings(BaseModel):
     ocr_device: str = "gpu"
     anki_url: str = "http://localhost:8765"
     deck_root: str = "Language Sketchbook"
+    # where commits go: Anki via AnkiConnect, or one note per page in a DSL data folder
+    backend: Literal["anki", "dsl"] = "anki"
+    dsl_dir: str = ""
 
 
 def load_settings() -> Settings:
@@ -80,6 +83,11 @@ def load_settings() -> Settings:
         ocr.DEVICE = s.ocr_device
         ocr._model.cache_clear()
     return s
+
+
+def lookup(keys: list[str], settings: Settings) -> dict[str, dict]:
+    """Cards already committed, by note key: {key: {"where", "front", "translation", "notes", …}}."""
+    return dsl.find_existing(PAGES, keys) if settings.backend == "dsl" else anki.lookup(keys)
 
 
 # --- pages -------------------------------------------------------------------
@@ -129,7 +137,8 @@ async def process(page_id: str):
     write_meta(page_id, status="thinking")
     settings = load_settings()
     previous = d / meta["previous"] if meta.get("previous") else None
-    await agent.run(d, meta["file"], model=settings.model, on_event=lambda e: emit(page_id, e), previous=previous)
+    await agent.run(d, meta["file"], model=settings.model, on_event=lambda e: emit(page_id, e), previous=previous,
+                    lookup=lambda keys: lookup(keys, settings))
     if previous:
         merge_previous(d, previous)
     write_meta(page_id, status="ready")
@@ -242,10 +251,14 @@ def put_data_dir(body: DataDir) -> DataDir:
     return get_data_dir()
 
 
-@app.get("/anki/status")
-def anki_status():
-    load_settings()
-    return anki.status()
+@app.get("/backend/status")
+def backend_status():
+    settings = load_settings()
+    if settings.backend == "dsl":
+        return {"backend": "dsl", **dsl.status(settings.dsl_dir)}
+    s = anki.status()
+    label = f"Anki: {s['profile']}" + ("" if s["note_types_installed"] else " (note types missing)") if s["ok"] else ""
+    return {"backend": "anki", **s, "label": label}
 
 
 @app.post("/anki/install")
@@ -254,7 +267,7 @@ def anki_install():
         anki.ensure_note_types()
     except anki.AnkiError as e:
         raise HTTPException(502, str(e))
-    return anki.status()
+    return backend_status()
 
 
 def page_summary(d: Path) -> dict:
@@ -333,19 +346,19 @@ def get_page(page_id: str):
         proposal = PageProposal.model_validate_json((d / "proposal.json").read_text())
         result["proposal"] = proposal.model_dump()
         keys = [note_key(proposal.target_lang, c) for c in proposal.cards]
-        # a focus card has no sentence note of its own; its cloze note stands in
-        anki_keys = [
+        settings = load_settings()
+        # in Anki a focus card has no sentence note of its own; its cloze note stands in
+        lookup_keys = keys if settings.backend == "dsl" else [
             note_key(proposal.target_lang, c, "focus") if c.cloze and c.cloze.mode == "focus" else k
             for c, k in zip(proposal.cards, keys)
         ]
         result["existing"] = [None] * len(keys)
         try:
-            load_settings()
-            found = anki.find_existing(anki_keys)
-            # existing note per card, in card order
-            result["existing"] = [found.get(k) for k in anki_keys]
-        except anki.AnkiError as e:
-            result["anki_error"] = str(e)
+            found = lookup(lookup_keys, settings)
+            # existing card per card, in card order
+            result["existing"] = [found.get(k) for k in lookup_keys]
+        except (anki.AnkiError, OSError) as e:
+            result["backend_error"] = str(e)
     if (d / "commit.json").exists():
         result["commit"] = json.loads((d / "commit.json").read_text())
     previous = result["meta"].get("previous")
@@ -389,12 +402,22 @@ def commit(page_id: str):
     d = page_dir(page_id)
     proposal = PageProposal.model_validate_json((d / "proposal.json").read_text())
     settings = load_settings()
+    changes = {}
     try:
-        results = anki.upsert(proposal, d, settings.deck_root)
+        if settings.backend == "dsl":
+            meta = read_meta(page_id)
+            # the page's note is overwritten on every commit, also of later versions
+            note, files, results = dsl.write(proposal, d, meta["file"], settings.dsl_dir,
+                                             meta.get("dsl_note"), meta.get("dsl_files", []))
+            changes = {"dsl_note": note, "dsl_files": files}
+        else:
+            results = anki.upsert(proposal, d, settings.deck_root)
     except anki.AnkiError as e:
         raise HTTPException(502, str(e))
-    (d / "commit.json").write_text(json.dumps(results, indent=2))
-    write_meta(page_id, status="committed")
+    except (OSError, ValueError) as e:
+        raise HTTPException(400, str(e))
+    (d / "commit.json").write_text(json.dumps(results, indent=2, ensure_ascii=False))
+    write_meta(page_id, status="committed", **changes)
     return results
 
 

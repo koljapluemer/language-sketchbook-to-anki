@@ -120,6 +120,16 @@ def find_existing(keys: list[str]) -> dict[str, dict]:
     return found
 
 
+def lookup(keys: list[str]) -> dict[str, dict]:
+    """find_existing as both backends report it: {key: {"where", "front", "translation", "notes"}}."""
+    mains = [t["main"] for t in NOTE_TYPES.values()]
+    return {
+        k: {"where": n["deck"], "front": next((n["fields"][m] for m in mains if m in n["fields"]), ""),
+            "translation": n["fields"].get("Translation", ""), "notes": n["fields"].get("Notes", "")}
+        for k, n in find_existing(keys).items()
+    }
+
+
 def _store_image(path: Path) -> str:
     data = path.read_bytes()
     filename = f"nb_{hashlib.sha1(data).hexdigest()[:16]}.png"
